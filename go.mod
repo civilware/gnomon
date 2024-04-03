@@ -1,11 +1,13 @@
 module github.com/civilware/Gnomon
 
-go 1.18
+go 1.21
+
+toolchain go1.21.6
 
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/chzyer/readline v1.5.1
-	github.com/creachadair/jrpc2 v0.43.0
+	github.com/creachadair/jrpc2 v0.35.4
 	github.com/deroproject/derohe v0.0.0-20230604143809-765b2db1f482
 	github.com/deroproject/graviton v0.0.0-20220130070622-2c248a53b2e1
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
@@ -27,8 +29,9 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/klauspost/compress v1.15.13 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.2 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
@@ -44,11 +47,11 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.4.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
