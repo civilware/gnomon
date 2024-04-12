@@ -1330,3 +1330,68 @@ func (bbs *BboltStore) StoreAltDBInput(treenames []string, altdb *GravitonStore)
 
 	return nil
 }
+
+// Stores the integrator addrs who submit blocks
+func (bbs *BboltStore) StoreIntegrators(integrator string) (changes bool, err error) {
+	bName := "integrators"
+	key := "integrators"
+
+	var currIntegrators []byte
+	newIntegratorsStag := make(map[string]int64)
+	var newIntegrators []byte
+
+	err = bbs.DB.View(func(tx *bolt.Tx) (err error) {
+		b := tx.Bucket([]byte(bName))
+		if b != nil {
+			currIntegrators = b.Get([]byte(key))
+		}
+		return
+	})
+
+	err = bbs.DB.Update(func(tx *bolt.Tx) (err error) {
+		b, err := tx.CreateBucketIfNotExists([]byte(bName))
+		if err != nil {
+			return fmt.Errorf("bucket: %s", err)
+		}
+
+		if currIntegrators == nil {
+			newIntegratorsStag[integrator]++
+		} else {
+			// Retrieve value and conovert to SCIDInteractionHeight, so that you can manipulate and update db
+			_ = json.Unmarshal(currIntegrators, &newIntegratorsStag)
+
+			newIntegratorsStag[integrator]++
+		}
+
+		newIntegrators, err = json.Marshal(newIntegratorsStag)
+		if err != nil {
+			return fmt.Errorf("[bbs-StoreInvalidSCIDDeploys] could not marshal integrators info: %v", err)
+		}
+
+		err = b.Put([]byte(key), newIntegrators)
+		changes = true
+		return
+	})
+
+	return
+}
+
+// Gets integrators and their counts
+func (bbs *BboltStore) GetIntegrators() (integrators map[string]int64) {
+	bName := "integrators"
+	key := "integrators"
+
+	bbs.DB.View(func(tx *bolt.Tx) (err error) {
+		b := tx.Bucket([]byte(bName))
+		if b != nil {
+			v := b.Get([]byte(key))
+
+			if v != nil {
+				_ = json.Unmarshal(v, &integrators)
+			}
+		}
+		return
+	})
+
+	return
+}

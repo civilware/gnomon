@@ -49,6 +49,7 @@ type Indexer struct {
 	Endpoint          string
 	RunMode           string
 	MBLLookup         bool
+	StoreIntegrators  bool
 	ValidatedSCs      []string
 	CloseOnDisconnect bool
 	FastSyncConfig    *structures.FastSyncConfig
@@ -64,7 +65,7 @@ var Connected bool = false
 // local logger
 var logger *logrus.Entry
 
-func NewIndexer(Graviton_backend *storage.GravitonStore, Bbs_backend *storage.BboltStore, dbtype string, search_filter []string, last_indexedheight int64, endpoint string, runmode string, mbllookup bool, closeondisconnect bool, fsc *structures.FastSyncConfig, sfscidexclusion []string) *Indexer {
+func NewIndexer(Graviton_backend *storage.GravitonStore, Bbs_backend *storage.BboltStore, dbtype string, search_filter []string, last_indexedheight int64, endpoint string, runmode string, mbllookup bool, closeondisconnect bool, fsc *structures.FastSyncConfig, sfscidexclusion []string, storeintegrators bool) *Indexer {
 	logger = structures.Logger.WithFields(logrus.Fields{})
 
 	if fsc == nil {
@@ -90,6 +91,7 @@ func NewIndexer(Graviton_backend *storage.GravitonStore, Bbs_backend *storage.Bb
 		Endpoint:          endpoint,
 		RunMode:           runmode,
 		MBLLookup:         mbllookup,
+		StoreIntegrators:  storeintegrators,
 		CloseOnDisconnect: closeondisconnect,
 		FastSyncConfig:    fsc,
 	}
@@ -324,6 +326,7 @@ func (indexer *Indexer) StartDaemonMode(blockParallelNum int) {
 			}
 
 			// All could be future optimized .. for now it's slower but works.
+			logger.Printf("[StartDaemonMode-fastsync] Checking signature and validity of '%s'...", gnomon_scid)
 			variables, code, _, err := indexer.RPC.GetSCVariables(gnomon_scid, indexer.ChainHeight, nil, nil, nil, false)
 			if err == nil && len(variables) > 0 {
 				_ = code
@@ -1041,9 +1044,58 @@ func (indexer *Indexer) indexBlock(blid string, topoheight int64) (blockTxns *st
 
 	var bl block.Block
 	var block_bin []byte
+	var addr *rpc.Address
+	writeWait, _ := time.ParseDuration("20ms")
 
 	block_bin, _ = hex.DecodeString(io.Blob)
 	bl.Deserialize(block_bin)
+
+	if indexer.StoreIntegrators {
+		p := new(crypto.Point)
+		if err := p.DecodeCompressed(bl.Miner_TX.MinerAddress[:]); err == nil {
+			addr = rpc.NewAddressFromKeys(p)
+		}
+
+		switch indexer.DBType {
+		case "gravdb":
+			for indexer.GravDBBackend.Writing == 1 {
+				if indexer.Closing {
+					return
+				}
+				//logger.Debugf("[Indexer-IndexBlock] GravitonDB is writing... sleeping for %v...", writeWait)
+				time.Sleep(writeWait)
+			}
+
+			indexer.GravDBBackend.Writing = 1
+			_, _, err = indexer.GravDBBackend.StoreIntegrators(addr.String(), false)
+			if err != nil {
+				logger.Errorf("[indexBlock] Error storing integrator details for blid %v", err)
+				indexer.GravDBBackend.Writing = 0
+				return blockTxns, err
+			}
+			indexer.GravDBBackend.Writing = 0
+		case "boltdb":
+			for indexer.BBSBackend.Writing == 1 {
+				if indexer.Closing {
+					return
+				}
+				//logger.Debugf("[Indexer-IndexBlock] BoltDB is writing... sleeping for %v... writer %v...", writeWait, indexer.BBSBackend.Writer)
+				time.Sleep(writeWait)
+			}
+
+			indexer.BBSBackend.Writing = 1
+			//indexer.BBSBackend.Writer = "IndexBlock"
+			_, err = indexer.BBSBackend.StoreIntegrators(addr.String())
+			if err != nil {
+				logger.Errorf("[indexBlock] Error storing integrator details for blid %v", err)
+				indexer.BBSBackend.Writing = 0
+				//indexer.BBSBackend.Writer = ""
+				return blockTxns, err
+			}
+			indexer.BBSBackend.Writing = 0
+			//indexer.BBSBackend.Writer = ""
+		}
+	}
 
 	if indexer.MBLLookup {
 		mbldetails, err2 := mbllookup.GetMBLByBLHash(bl)
@@ -1052,7 +1104,6 @@ func (indexer *Indexer) indexBlock(blid string, topoheight int64) (blockTxns *st
 			return blockTxns, err2
 		}
 
-		writeWait, _ := time.ParseDuration("20ms")
 		switch indexer.DBType {
 		case "gravdb":
 			if !(indexer.RunMode == "asset") {
@@ -2947,6 +2998,97 @@ func (indexer *Indexer) ValidateSCSignature(code string, key string) (validated 
 
 	if string(message) == code {
 		validated = true
+	}
+
+	return
+}
+
+// Returns a list of addresses that have indexed 'interactions' with the network
+func (indexer *Indexer) GetInteractionAddresses(config *structures.InteractionAddrs_Params) (interAddrs map[string]*structures.IATrack, interCounts *structures.IATrack) {
+	interAddrs = make(map[string]*structures.IATrack)
+	interCounts = &structures.IATrack{}
+
+	logger.Debugf("[GetInteractionAddresses] Getting owners and integrators")
+	// Get all SCID owners
+	sclist := make(map[string]string)
+	integrators := make(map[string]int64)
+	switch indexer.DBType {
+	case "gravdb":
+		sclist = indexer.GravDBBackend.GetAllOwnersAndSCIDs()
+		integrators, _ = indexer.GravDBBackend.GetIntegrators()
+	case "boltdb":
+		sclist = indexer.BBSBackend.GetAllOwnersAndSCIDs()
+		integrators = indexer.BBSBackend.GetIntegrators()
+	}
+
+	// Build an interaction list
+	logger.Debugf("[GetInteractionAddresses] Building interaction list - integrator")
+	if config.Integrator {
+		for k, _ := range integrators {
+			interCounts.Integrator++
+			if interAddrs[k] == nil {
+				interAddrs[k] = &structures.IATrack{}
+			}
+			interAddrs[k].Integrator++
+		}
+	}
+
+	logger.Debugf("[GetInteractionAddresses] Building interaction list - invokes and installs")
+	for k, v := range sclist {
+		var invokedetails []*structures.SCTXParse
+		if config.Invokes {
+			switch indexer.DBType {
+			case "gravdb":
+				invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(k)
+			case "boltdb":
+				invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(k)
+			}
+		}
+
+		// Add each invoke sender interaction
+		for _, vi := range invokedetails {
+			sc_action := fmt.Sprintf("%v", vi.Sc_args.Value("SC_ACTION", "U"))
+			if sc_action == "0" {
+				interCounts.Invokes++
+				if interAddrs[vi.Sender] == nil {
+					interAddrs[vi.Sender] = &structures.IATrack{}
+				}
+				interAddrs[vi.Sender].Invokes++
+			}
+		}
+
+		// Append to interaction list the install
+		if config.Installs {
+			if v != "" {
+				interCounts.Installs++
+				if interAddrs[v] == nil {
+					interAddrs[v] = &structures.IATrack{}
+				}
+				interAddrs[v].Installs++
+			}
+		}
+	}
+
+	return
+}
+
+// Returns a random n number of interaction addresses
+func (indexer *Indexer) GetRandInteractionAddresses(count int64, config *structures.InteractionAddrs_Params) (rAddr []string, err error) {
+	interAddrs := make(map[string]*structures.IATrack)
+	interAddrs, _ = indexer.GetInteractionAddresses(config)
+
+	i := int64(0)
+	for k, _ := range interAddrs {
+		if i >= count {
+			break
+		}
+		rAddr = append(rAddr, k)
+		i++
+	}
+
+	// Push err after generating list since the list could still be of use to the func call
+	if count > int64(len(interAddrs)) {
+		return rAddr, fmt.Errorf("Provided count '%d' is more than returned interaction addresses '%d'", count, len(interAddrs))
 	}
 
 	return

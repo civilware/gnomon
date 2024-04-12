@@ -117,6 +117,7 @@ commands:
 	getscidlist_byaddr	Gets list of scids that addr has interacted with, getscidlist_byaddr <addr>
 	countinvoke_burnvalue	Lists a scid/owner pair of a defined scid and any invokes then calculates any burnvalue for them. Optionally limited to a specified minimum height or string match filter on args, countinvoke_burnvalue <scid> || countinvoke_burnvalue <scid> <minheight> || ... | grep <stringmatch>
 	diffscid_code	Runs a difference for SC code at one height vs another, diffscid_code <scid> <startHeight> <endHeight>
+	list_interactionaddrs	Gets interaction addresses, list_interactionaddrs
 	pop	Rolls back lastindexheight, pop <100>
 	status		Show general information
 	gnomonsc		Show scid of gnomon index scs
@@ -221,6 +222,9 @@ runmode := "daemon"
 // NOTE - This REQUIRES the same directory as your  DERODB etc. I'd suggest checking out binary implementation of this and adjust accordingly, most likely not used through packaging (but could be)
 mbl := false
 
+// storeintegrators - 'bonus' feature to store the integrators along the way as blocks are indexed
+storeintegrators := false
+
 // closeondisconnect - More of a 'specific' use case feature - if daemon connectivity (after previously being connected) ceases for x time, then close the indexer which eventually panics. Will be cleaner in future or removed with upstream daemons being pooled. Primary use case is to ensure api is disconnected when daemon is not connected for bad data, could accomplish other ways.
 closeondisconnect := false
 
@@ -241,7 +245,7 @@ sfscidexclusions = append(sfscidexclusion, structures.MAINNET_GNOMON_SCID)
 indexer.InitLog(arguments, os.Stdout)
 
 // Indexer
-defaultIndexer := indexer.NewIndexer(Graviton_backend, Bbs_backend, dbtype, search_filter, last_indexedheight, daemon_endpoint, runmode, mbl, closeondisconnect, fsc, sfscidexclusion)
+defaultIndexer := indexer.NewIndexer(Graviton_backend, Bbs_backend, dbtype, search_filter, last_indexedheight, daemon_endpoint, runmode, mbl, closeondisconnect, fsc, sfscidexclusion, storeintegrators)
 ```
 
 ### Reading From DB(s)

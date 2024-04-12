@@ -105,3 +105,15 @@ type JSONRpcResp struct {
 	Result  interface{}      `json:"result"`
 	Error   interface{}      `json:"error"`
 }
+
+type IATrack struct {
+	Integrator int64
+	Installs   int64
+	Invokes    int64
+}
+
+type InteractionAddrs_Params struct {
+	Integrator bool
+	Installs   bool
+	Invokes    bool
+}

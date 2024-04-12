@@ -1928,4 +1928,115 @@ func (g *GravitonStore) StoreAltDBInput(treenames []string, altdb *GravitonStore
 	return nil
 }
 
+// Stores any SCIDs that were attempted to be deployed but not correct - log scid/fees burnt attempting it.
+func (g *GravitonStore) StoreIntegrators(integrator string, nocommit bool) (tree *graviton.Tree, changes bool, err error) {
+	store := g.DB
+	ss, err := store.LoadSnapshot(0) // load most recent snapshot
+	if err != nil {
+		return
+	}
+
+	// Check for g.migrating, if so sleep for g.DBMigrateWait ms
+	for g.migrating == 1 {
+		logger.Debugf("[StoreIntegrators] G is migrating... sleeping for %v...", g.DBMigrateWait)
+		time.Sleep(g.DBMigrateWait)
+		store = g.DB
+		ss, err = store.LoadSnapshot(0) // load most recent snapshot
+		if err != nil {
+			return
+		}
+	}
+
+	treename := "integrators"
+	tree, _ = ss.GetTree(treename)
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-StoreIntegrators] ERROR: Tree is nil for '%v'. Attempting to rollback 1 snapshot", treename)
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return tree, changes, preverr
+		}
+		tree, terr = prevss.GetTree(treename)
+		if tree == nil {
+			logger.Errorf("[Graviton] ERROR: %v", terr)
+			return tree, changes, terr
+		}
+	}
+	key := "integrators"
+	currIntegrators, err := tree.Get([]byte(key))
+	newIntegratorsStag := make(map[string]uint64)
+
+	var newIntegrators []byte
+
+	if err != nil {
+		newIntegratorsStag[integrator]++
+	} else {
+		// Retrieve value and conovert, so that you can manipulate and update db
+		_ = json.Unmarshal(currIntegrators, &newIntegratorsStag)
+
+		newIntegratorsStag[integrator]++
+	}
+	newIntegrators, err = json.Marshal(newIntegratorsStag)
+	if err != nil {
+		return tree, changes, fmt.Errorf("[Graviton] could not marshal interactionHeight info: %v", err)
+	}
+
+	tree.Put([]byte(key), newIntegrators)
+	changes = true
+	if !nocommit {
+		_, cerr := graviton.Commit(tree)
+		if cerr != nil {
+			logger.Errorf("[Graviton] ERROR: %v", cerr)
+			return tree, changes, cerr
+		}
+	}
+	return tree, changes, nil
+}
+
+// Gets integrators and their counts
+func (g *GravitonStore) GetIntegrators() (integrators map[string]int64, err error) {
+	store := g.DB
+	ss, err := store.LoadSnapshot(0) // load most recent snapshot
+	if err != nil {
+		return integrators, err
+	}
+
+	// Swap DB at g.DBMaxSnapshot+ commits. Check for g.migrating, if so sleep for g.DBMigrateWait ms
+	for g.migrating == 1 {
+		logger.Debugf("[GetIntegrators] G is migrating... sleeping for %v...", g.DBMigrateWait)
+		time.Sleep(g.DBMigrateWait)
+		store = g.DB
+		ss, err = store.LoadSnapshot(0) // load most recent snapshot
+		if err != nil {
+			return integrators, err
+		}
+	}
+
+	tree, _ := ss.GetTree("integrators") // use or create tree named by poolhost in config
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-GetIntegrators] ERROR: Tree is nil for 'stats'. Attempting to rollback 1 snapshot")
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return integrators, preverr
+		}
+		tree, terr = prevss.GetTree("integrators")
+		if tree == nil {
+			return integrators, fmt.Errorf("[Graviton] ERROR: %v", terr)
+		}
+	}
+	key := "integrators"
+
+	v, _ := tree.Get([]byte(key))
+
+	if v != nil {
+		_ = json.Unmarshal(v, &integrators)
+		return integrators, err
+	}
+
+	return integrators, err
+}
+
 // ---- End Application Graviton/Backend functions ---- //

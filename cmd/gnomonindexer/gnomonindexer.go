@@ -56,6 +56,7 @@ Options:
   --search-filter=<"Function InputStr(input String, varname String) Uint64">     Defines a search filter to match on installed SCs to add to validated list and index all actions, this will most likely change in the future but can allow for some small variability. Include escapes etc. if required. If nothing is defined, it will pull all (minus hardcoded sc).
   --runmode=<daemon>     Defines the runmode of gnomon (daemon/wallet/asset). By default this is daemon mode which indexes directly from the chain. Wallet mode indexes from wallet tx history (use/store with caution).
   --enable-miniblock-lookup     True/false value to store all miniblocks and their respective details and miner addresses who found them. This currently REQUIRES a full node db in same directory
+  --store-integrators     True/false value to store integrator addresses for each block and keep track of how many blocks they've submitted
   --close-on-disconnect     True/false value to close out indexers in the event of daemon disconnect. Daemon will fail connections for 30 seconds and then close the indexer. This is for HA pairs or wanting services off on disconnect.
   --fastsync     True/false value to define loading at chain height and only keeping track of list of SCIDs and their respective up-to-date variable stores as it hits them. NOTE: You will not get all information and may rely on manual scid additions.
   --skipfsrecheck     True/false value (only relevant when --fastsync is used) to define if SC validity should be re-checked from data coming via Gnomon SC index or not.
@@ -205,6 +206,11 @@ func main() {
 	}
 	Gnomon.MBLLookup = mbl
 
+	var storeintegrators bool
+	if arguments["--store-integrators"] != nil && arguments["--store-integrators"].(bool) == true {
+		storeintegrators = true
+	}
+
 	numParallelBlocks := 1
 	if arguments["--num-parallel-blocks"] != nil {
 		numParallelBlocks, err = strconv.Atoi(arguments["--num-parallel-blocks"].(string))
@@ -350,7 +356,7 @@ func main() {
 		ForceFastSyncDiff: forcefastsyncdiff,
 		NoCode:            nocode,
 	}
-	defaultIndexer := indexer.NewIndexer(Graviton_backend, Bbs_backend, Gnomon.DBType, search_filter, last_indexedheight, daemon_endpoint, Gnomon.RunMode, mbl, closeondisconnect, fsc, sf_scid_exclusions)
+	defaultIndexer := indexer.NewIndexer(Graviton_backend, Bbs_backend, Gnomon.DBType, search_filter, last_indexedheight, daemon_endpoint, Gnomon.RunMode, mbl, closeondisconnect, fsc, sf_scid_exclusions, storeintegrators)
 
 	switch Gnomon.RunMode {
 	case "daemon":
@@ -1827,6 +1833,28 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			} else {
 				logger.Printf("diffscid_code needs 3 values: scid, start height and end height")
 			}
+		case command == "list_randominteractionaddrs":
+			if len(line_parts) == 2 {
+				for ki, vi := range g.Indexers {
+					logger.Printf("- Indexer '%v'", ki)
+					intCheck, err := strconv.ParseInt(line_parts[1], 10, 64)
+					if err == nil {
+						rAddr, err := vi.GetRandInteractionAddresses(intCheck, &structures.InteractionAddrs_Params{Integrator: true, Installs: true, Invokes: true})
+
+						for _, v := range rAddr {
+							logger.Printf("%s", v)
+						}
+
+						if err != nil {
+							logger.Errorf("%v", err)
+						}
+					} else {
+						logger.Printf("list_randominteractionaddrs needs 1 value: count of addresses to return. Supplied count is not an int.")
+					}
+				}
+			} else {
+				logger.Printf("list_randominteractionaddrs needs 1 value: count of addresses to return")
+			}
 		case command == "pop":
 			switch len(line_parts) {
 			case 1:
@@ -1863,8 +1891,10 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 		case line == "status":
 			for ki, vi := range g.Indexers {
 				logger.Printf("- Indexer '%v' - Generating status metrics...", ki)
-				var validatedSCIDs map[string]string
-				var regTxCount, burnTxCount, normTxCount, gnomon_count, scTxCount int64
+				var regTxCount, burnTxCount, normTxCount, gnomon_count int64
+				var interCounts *structures.IATrack
+				validatedSCIDs := make(map[string]string)
+				addrList := make(map[string]*structures.IATrack)
 
 				switch vi.DBType {
 				case "gravdb":
@@ -1874,10 +1904,6 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 					regTxCount = vi.GravDBBackend.GetTxCount("registration")
 					burnTxCount = vi.GravDBBackend.GetTxCount("burn")
 					normTxCount = vi.GravDBBackend.GetTxCount("normal")
-
-					for sc, _ := range validatedSCIDs {
-						scTxCount += int64(len(vi.GravDBBackend.GetAllSCIDInvokeDetails(sc)))
-					}
 				case "boltdb":
 					validatedSCIDs = vi.BBSBackend.GetAllOwnersAndSCIDs()
 					gnomon_count = int64(len(validatedSCIDs))
@@ -1885,14 +1911,14 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 					regTxCount = vi.BBSBackend.GetTxCount("registration")
 					burnTxCount = vi.BBSBackend.GetTxCount("burn")
 					normTxCount = vi.BBSBackend.GetTxCount("normal")
-
-					for sc, _ := range validatedSCIDs {
-						scTxCount += int64(len(vi.BBSBackend.GetAllSCIDInvokeDetails(sc)))
-					}
 				}
 
+				addrList, interCounts = vi.GetInteractionAddresses(&structures.InteractionAddrs_Params{Integrator: true, Installs: true, Invokes: true})
+
 				logger.Printf("GNOMON [%d/%d] R:%d >>", vi.LastIndexedHeight, vi.ChainHeight, gnomon_count)
-				logger.Printf("TXCOUNTS [%d/%d] R:%d B:%d N:%d S:%d >>", vi.LastIndexedHeight, vi.ChainHeight, regTxCount, burnTxCount, normTxCount, scTxCount)
+				logger.Printf("TXCOUNTS [%d/%d] R:%d B:%d N:%d >>", vi.LastIndexedHeight, vi.ChainHeight, regTxCount, burnTxCount, normTxCount)
+				logger.Printf("SCACTIONS [%d/%d] I:%d A:%d >>", vi.LastIndexedHeight, vi.ChainHeight, interCounts.Installs, interCounts.Invokes-interCounts.Installs)
+				logger.Printf("INTERADDRS [%d/%d] I:%d S:%d >>", vi.LastIndexedHeight, vi.ChainHeight, interCounts.Integrator, int64(len(addrList))-interCounts.Integrator)
 				if len(vi.SearchFilter) == 0 {
 					logger.Printf("SEARCHFILTER(S) [%d/%d] >> %s", vi.LastIndexedHeight, vi.ChainHeight, "ALL SCs")
 				} else {

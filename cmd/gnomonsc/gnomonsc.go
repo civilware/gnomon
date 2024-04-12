@@ -246,11 +246,11 @@ func runGnomonIndexer(derodendpoint string, gnomonendpoint string, search_filter
 
 	// If we can gather the current height from /api/getinfo then start-topoheight will be passed and fastsync not used. This saves time to not check all SCIDs from gnomon SC. Otherwise default back to "slow and steady" method.
 	if currheight > 0 {
-		defaultIndexer = indexer.NewIndexer(graviton_backend, nil, "gravdb", nil, currheight, derodendpoint, "daemon", false, false, nil, sf_scid_exclusions)
+		defaultIndexer = indexer.NewIndexer(graviton_backend, nil, "gravdb", nil, currheight, derodendpoint, "daemon", false, false, nil, sf_scid_exclusions, false)
 		defaultIndexer.StartDaemonMode(1)
 	} else {
 		fsc := &structures.FastSyncConfig{Enabled: true, SkipFSRecheck: true, ForceFastSync: true, NoCode: false}
-		defaultIndexer = indexer.NewIndexer(graviton_backend, nil, "gravdb", nil, int64(1), derodendpoint, "daemon", false, false, fsc, sf_scid_exclusions)
+		defaultIndexer = indexer.NewIndexer(graviton_backend, nil, "gravdb", nil, int64(1), derodendpoint, "daemon", false, false, fsc, sf_scid_exclusions, false)
 		defaultIndexer.StartDaemonMode(1)
 	}
 
