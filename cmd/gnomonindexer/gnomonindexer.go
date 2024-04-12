@@ -69,6 +69,8 @@ Options:
   --remove-api-throttle     Removes the api throttle against number of sc variables, sc invoke data etc. to return
   --sf-scid-exclusions=<"a05395bb0cf77adc850928b0db00eb5ca7a9ccbafd9a38d021c8d299ad5ce1a4;;;c9d23d2fc3aaa8e54e238a2218c0e5176a6e48780920fd8474fac5b0576110a2">     Defines a scid or scids (use const separator [default ';;;']) to be excluded from indexing regardless of search-filter. If nothing is defined, all scids that match the search-filter will be indexed.
   --skip-gnomonsc-index     If the gnomonsc is caught within the supplied search filter, you can skip indexing that SC given the size/depth of calls to that SC for increased sync times.
+  --gnomondb-dest-dir=<"">     Defines the destination directory where gnomondb will be stored
+  --derodb-dir=<"">     Defines the location where derodb can be referenced from
   --debug     Enables debug logging`
 
 var Exit_In_Progress = make(chan bool)
@@ -118,6 +120,27 @@ func main() {
 	logger = structures.Logger.WithFields(logrus.Fields{})
 
 	// Set variables from arguments
+	gnomondb_wd, err := os.Getwd()
+	if err != nil {
+		logger.Fatalf("[Main] Err getting working directory: %v", err)
+	}
+	if arguments["--gnomondb-dest-dir"] != nil && arguments["--gnomondb-dest-dir"].(string) != "" {
+		gnomondb_wd = arguments["--gnomondb-dest-dir"].(string)
+		logger.Printf("[Main] Using gnomondb destination directory '%s'", gnomondb_wd)
+		_, err = os.Stat(gnomondb_wd)
+		if err != nil {
+			logger.Fatalf("[Main] Err setting gnomondb working directory to '%s'", gnomondb_wd)
+		}
+	}
+
+	if arguments["--derodb-dir"] != nil && arguments["--derodb-dir"].(string) != "" {
+		derodb_wd := arguments["--derodb-dir"].(string)
+		err = mbllookup.SetDeroDBWD(derodb_wd)
+		if err != nil {
+			logger.Fatalf("[Main] Err setting derodb directory to '%s'", derodb_wd)
+		}
+	}
+
 	daemon_endpoint := "127.0.0.1:40402"
 	if arguments["--daemon-rpc-address"] != nil {
 		daemon_endpoint = arguments["--daemon-rpc-address"].(string)
@@ -298,11 +321,7 @@ func main() {
 				shasum = fmt.Sprintf("%x", sha1.Sum([]byte(csearch_filter)))
 			}
 			db_folder := fmt.Sprintf("gnomondb\\%s_%s", "GNOMON", shasum)
-			current_path, err := os.Getwd()
-			if err != nil {
-				logger.Fatalf("[Main] Err getting working directory: %v", err)
-			}
-			db_path := filepath.Join(current_path, db_folder)
+			db_path := filepath.Join(gnomondb_wd, db_folder)
 			Graviton_backend, err = storage.NewGravDB(db_path, "25ms")
 			if err != nil {
 				logger.Fatalf("[Main] Err creating gravdb: %v", err)
@@ -318,11 +337,7 @@ func main() {
 			shasum = fmt.Sprintf("%x", sha1.Sum([]byte(csearch_filter)))
 		}
 		db_name := fmt.Sprintf("%s_%s.db", "GNOMON", shasum)
-		wd, err := os.Getwd()
-		if err != nil {
-			logger.Fatalf("[Main] Err getting working directory: %v", err)
-		}
-		db_path := filepath.Join(wd, "gnomondb")
+		db_path := filepath.Join(gnomondb_wd, "gnomondb")
 		Bbs_backend, err = storage.NewBBoltDB(db_path, db_name)
 		if err != nil {
 			logger.Fatalf("[Main] Err creating boltdb: %v", err)
@@ -1972,6 +1987,7 @@ func usage(w io.Writer) {
 	io.WriteString(w, "\t\033[1mgetscidlist_byaddr\033[0m\tGets list of scids that addr has interacted with, getscidlist_byaddr <addr>\n")
 	io.WriteString(w, "\t\033[1mcountinvoke_burnvalue\033[0m\tLists a scid/owner pair of a defined scid and any invokes then calculates any burnvalue for them. Optionally limited to a specified minimum height or string match filter on args, countinvoke_burnvalue <scid> || countinvoke_burnvalue <scid> <minheight> || ... | grep <stringmatch>\n")
 	io.WriteString(w, "\t\033[1mdiffscid_code\033[0m\tRuns a difference for SC code at one height vs another, diffscid_code <scid> <startHeight> <endHeight>\n")
+	io.WriteString(w, "\t\033[1mlist_randominteractionaddrs\033[0m\tReturns a defined set length of random interaction addresses, list_randominteractionaddrs <10>\n")
 	io.WriteString(w, "\t\033[1mpop\033[0m\tRolls back lastindexheight, pop <100>\n")
 	io.WriteString(w, "\t\033[1mstatus\033[0m\t\tShow general information\n")
 	io.WriteString(w, "\t\033[1mgnomonsc\033[0m\t\tShow scid of gnomon index scs\n")
