@@ -1,6 +1,7 @@
 package mbllookup
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -30,9 +31,26 @@ type Storetopofs struct {
 
 var Connected bool
 var DeroDB = &Derodbstore{}
+var DeroDBWD = ""
 
 // local logger
 var logger *logrus.Entry
+
+func SetDeroDBWD(wd string) (err error) {
+	logger = structures.Logger.WithFields(logrus.Fields{})
+
+	if wd == "" {
+		DeroDBWD, err = os.Getwd()
+		if err != nil {
+			return fmt.Errorf("[SetDeroDBWD] Error setting working directory for derodb: %v", err)
+		}
+	} else {
+		DeroDBWD = wd
+		logger.Debugf("[SetDeroDBWD] Set DeroDB working directory to '%s'", DeroDBWD)
+	}
+
+	return
+}
 
 func GetMBLByBLHash(bl block.Block) (mblinfo []*structures.MBLInfo, err error) {
 	logger = structures.Logger.WithFields(logrus.Fields{})
@@ -86,10 +104,11 @@ func GetMBLByBLHash(bl block.Block) (mblinfo []*structures.MBLInfo, err error) {
 func (s *Derodbstore) LoadDeroDB() (err error) {
 	logger = structures.Logger.WithFields(logrus.Fields{})
 
-	// Temp defining for now to same directory as testnet folder - TODO: see if we can natively pull in storage location? I doubt it..
-	current_path, err := os.Getwd()
+	if DeroDBWD == "" {
+		SetDeroDBWD("")
+	}
+	current_path := DeroDBWD
 	current_path = filepath.Join(current_path, "mainnet")
-
 	current_path = filepath.Join(current_path, "balances")
 
 	_, err = os.Stat(current_path)
