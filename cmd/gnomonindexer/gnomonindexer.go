@@ -488,7 +488,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			logger.Printf("Version: %v", structures.Version.String())
 		case command == "listsc":
 			// Split up line_parts and identify any common language filtering
-			filt_line_parts := indexer.SplitLineParts(line_parts)
+			filt_line_parts := indexer.SplitLineParts(line_parts, "|")
 
 			if len(line_parts) >= 2 && len(line_parts[1]) == 66 {
 				for ki, vi := range g.Indexers {
@@ -537,7 +537,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						})
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults := vi.PipeFilter(filt_line_parts, scinstalls)
+						var filteredResults []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], scinstalls)
+								} else {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+								}
+
+							}
+						} else {
+							filteredResults = vi.PipeFilter(filt_line_parts[0], scinstalls)
+						}
 
 						for _, invoke := range filteredResults {
 							logger.Printf("SCID: %v ; Owner: %v ; DeployHeight: %v", invoke.Scid, invoke.Sender, invoke.Height)
@@ -597,7 +609,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						})
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults := vi.PipeFilter(filt_line_parts, scinstalls)
+						var filteredResults []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], scinstalls)
+								} else {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+								}
+
+							}
+						} else {
+							filteredResults = vi.PipeFilter(filt_line_parts[0], scinstalls)
+						}
 
 						for _, invoke := range filteredResults {
 							logger.Printf("SCID: %v ; Owner: %v ; DeployHeight: %v", invoke.Scid, invoke.Sender, invoke.Height)
@@ -895,7 +919,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			}
 		case command == "listsc_byheight":
 			// Split up line_parts and identify any common language filtering
-			filt_line_parts := indexer.SplitLineParts(line_parts)
+			filt_line_parts := indexer.SplitLineParts(line_parts, "|")
 
 			if len(line_parts) == 1 || line_parts[1] == "|" {
 				for ki, vi := range g.Indexers {
@@ -937,7 +961,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						})
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults := vi.PipeFilter(filt_line_parts, scinstalls)
+						var filteredResults []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], scinstalls)
+								} else {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+								}
+
+							}
+						} else {
+							filteredResults = vi.PipeFilter(filt_line_parts[0], scinstalls)
+						}
 
 						for _, invoke := range filteredResults {
 							logger.Printf("SCID: %v ; Owner: %v ; DeployHeight: %v", invoke.Scid, invoke.Sender, invoke.Height)
@@ -989,7 +1025,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 							l := 0
 
 							// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-							filteredResults := vi.PipeFilter(filt_line_parts, scinstalls)
+							var filteredResults []*structures.SCTXParse
+							if len(filt_line_parts) > 1 {
+								for i := range filt_line_parts {
+									if i == 0 {
+										filteredResults = vi.PipeFilter(filt_line_parts[i], scinstalls)
+									} else {
+										filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+									}
+
+								}
+							} else {
+								filteredResults = vi.PipeFilter(filt_line_parts[0], scinstalls)
+							}
 
 							for _, invoke := range filteredResults {
 								if invoke.Height <= int64(sh) {
@@ -1084,7 +1132,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			}
 		case command == "listscinvoke_byscid":
 			// Split up line_parts and identify any common language filtering
-			filt_line_parts := indexer.SplitLineParts(line_parts)
+			filt_line_parts := indexer.SplitLineParts(line_parts, "|")
 
 			if len(line_parts) >= 2 && len(line_parts[1]) == 64 {
 				for ki, vi := range g.Indexers {
@@ -1109,7 +1157,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 							}
 
 							// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-							filteredResults := vi.PipeFilter(filt_line_parts, invokedetails)
+							var filteredResults []*structures.SCTXParse
+							if len(filt_line_parts) > 1 {
+								for i := range filt_line_parts {
+									if i == 0 {
+										filteredResults = vi.PipeFilter(filt_line_parts[i], invokedetails)
+									} else {
+										filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+									}
+
+								}
+							} else {
+								filteredResults = vi.PipeFilter(filt_line_parts[0], invokedetails)
+							}
 
 							for _, invoke := range filteredResults {
 								logger.Printf("Sender: %v ; topoheight : %v ; args: %v ; burnValue: %v", invoke.Sender, invoke.Height, invoke.Sc_args, invoke.Payloads[0].BurnValue)
@@ -1128,7 +1188,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			}
 		case command == "listscinvoke_byentrypoint":
 			// Split up line_parts and identify any common language filtering
-			filt_line_parts := indexer.SplitLineParts(line_parts)
+			filt_line_parts := indexer.SplitLineParts(line_parts, "|")
 
 			if len(line_parts) >= 3 && len(line_parts[1]) == 64 && line_parts[2] != "|" {
 				for ki, vi := range g.Indexers {
@@ -1143,7 +1203,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 					var count int64
 
 					// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-					filteredResults := vi.PipeFilter(filt_line_parts, indexbyentry)
+					var filteredResults []*structures.SCTXParse
+					if len(filt_line_parts) > 1 {
+						for i := range filt_line_parts {
+							if i == 0 {
+								filteredResults = vi.PipeFilter(filt_line_parts[i], indexbyentry)
+							} else {
+								filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+							}
+
+						}
+					} else {
+						filteredResults = vi.PipeFilter(filt_line_parts[0], indexbyentry)
+					}
 
 					for _, invoke := range filteredResults {
 						logger.Printf("Sender: %v ; topoheight : %v ; args: %v ; burnValue: %v", invoke.Sender, invoke.Height, invoke.Sc_args, invoke.Payloads[0].BurnValue)
@@ -1159,9 +1231,9 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			}
 		case command == "listscinvoke_byinitialize":
 			// Split up line_parts and identify any common language filtering
-			filt_line_parts := indexer.SplitLineParts(line_parts)
+			filt_line_parts := indexer.SplitLineParts(line_parts, "|")
 
-			if len(line_parts) == 1 || (len(line_parts) >= 1 && len(filt_line_parts) > 0 && line_parts[1] == "|") { //&& len(line_parts[1]) == 64 {
+			if len(line_parts) == 1 || (len(line_parts) >= 1 && len(filt_line_parts) > 1 && line_parts[1] == "|") { //&& len(line_parts[1]) == 64 {
 				for ki, vi := range g.Indexers {
 					logger.Printf("- Indexer '%v'", ki)
 					var sclist map[string]string
@@ -1182,7 +1254,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						}
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults := vi.PipeFilter(filt_line_parts, indexbyentry)
+						var filteredResults []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], indexbyentry)
+								} else {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+								}
+
+							}
+						} else {
+							filteredResults = vi.PipeFilter(filt_line_parts[0], indexbyentry)
+						}
 
 						for _, invoke := range filteredResults {
 							sc_action := fmt.Sprintf("%v", invoke.Sc_args.Value("SC_ACTION", "U"))
@@ -1203,7 +1287,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						}
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults2 := vi.PipeFilter(filt_line_parts, indexbyentry2)
+						var filteredResults2 []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults2 = vi.PipeFilter(filt_line_parts[i], indexbyentry2)
+								} else {
+									filteredResults2 = vi.PipeFilter(filt_line_parts[i], filteredResults2)
+								}
+
+							}
+						} else {
+							filteredResults2 = vi.PipeFilter(filt_line_parts[0], indexbyentry2)
+						}
 
 						for _, invoke := range filteredResults2 {
 							sc_action := fmt.Sprintf("%v", invoke.Sc_args.Value("SC_ACTION", "U"))
@@ -1220,7 +1316,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						logger.Printf("No SCIDs with initialize called.")
 					}
 				}
-			} else if len(line_parts) == 2 && len(line_parts[1]) == 64 || (len(filt_line_parts) > 0 && len(line_parts) >= 2 && len(line_parts[1]) == 64 && line_parts[2] == "|") {
+			} else if len(line_parts) == 2 && len(line_parts[1]) == 64 || (len(filt_line_parts) > 1 && len(line_parts) >= 2 && len(line_parts[1]) == 64 && line_parts[2] == "|") {
 				for ki, vi := range g.Indexers {
 					logger.Printf("- Indexer '%v'", ki)
 					var sclist map[string]string
@@ -1244,7 +1340,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						}
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults := vi.PipeFilter(filt_line_parts, indexbyentry)
+						var filteredResults []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], indexbyentry)
+								} else {
+									filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+								}
+
+							}
+						} else {
+							filteredResults = vi.PipeFilter(filt_line_parts[0], indexbyentry)
+						}
 
 						for _, invoke := range filteredResults {
 							sc_action := fmt.Sprintf("%v", invoke.Sc_args.Value("SC_ACTION", "U"))
@@ -1265,7 +1373,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 						}
 
 						// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-						filteredResults2 := vi.PipeFilter(filt_line_parts, indexbyentry2)
+						var filteredResults2 []*structures.SCTXParse
+						if len(filt_line_parts) > 1 {
+							for i := range filt_line_parts {
+								if i == 0 {
+									filteredResults2 = vi.PipeFilter(filt_line_parts[i], indexbyentry2)
+								} else {
+									filteredResults2 = vi.PipeFilter(filt_line_parts[i], filteredResults2)
+								}
+
+							}
+						} else {
+							filteredResults2 = vi.PipeFilter(filt_line_parts[0], indexbyentry2)
+						}
 
 						for _, invoke := range filteredResults2 {
 							sc_action := fmt.Sprintf("%v", invoke.Sc_args.Value("SC_ACTION", "U"))
@@ -1288,7 +1408,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 		case command == "listscinvoke_bysigner":
 			{
 				// Split up line_parts and identify any common language filtering
-				filt_line_parts := indexer.SplitLineParts(line_parts)
+				filt_line_parts := indexer.SplitLineParts(line_parts, "|")
 
 				if len(line_parts) >= 2 {
 					for ki, vi := range g.Indexers {
@@ -1315,7 +1435,19 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 							}
 							if len(indexbypartialsigner) > 0 {
 								// Filter line inputs (if applicable) and return a trimmed list to print out to cli
-								filteredResults := vi.PipeFilter(filt_line_parts, indexbypartialsigner)
+								var filteredResults []*structures.SCTXParse
+								if len(filt_line_parts) > 1 {
+									for i := range filt_line_parts {
+										if i == 0 {
+											filteredResults = vi.PipeFilter(filt_line_parts[i], indexbypartialsigner)
+										} else {
+											filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
+										}
+
+									}
+								} else {
+									filteredResults = vi.PipeFilter(filt_line_parts[0], indexbypartialsigner)
+								}
 
 								if len(filteredResults) > 0 {
 									logger.Printf("SCID: %v ; Owner: %v", k, v)

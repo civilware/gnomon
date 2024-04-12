@@ -27,6 +27,8 @@ type Client struct {
 }
 
 func (client *Client) Connect(endpoint string) (err error) {
+	var daemon_uri string
+
 	// Used to check if the endpoint has changed.. if so, then close WS to current and update WS
 	if client.WS != nil {
 		remAddr := client.WS.RemoteAddr()
@@ -43,20 +45,45 @@ func (client *Client) Connect(endpoint string) (err error) {
 		}
 	}
 
-	client.WS, _, err = websocket.DefaultDialer.Dial("ws://"+endpoint+"/ws", nil)
+	// Trim off http, https, wss, ws to get endpoint to use for connecting
+	if strings.HasPrefix(endpoint, "https") {
+		ld := strings.TrimPrefix(strings.ToLower(endpoint), "https://")
+		daemon_uri = "wss://" + ld + "/ws"
+
+		client.WS, _, err = websocket.DefaultDialer.Dial(daemon_uri, nil)
+	} else if strings.HasPrefix(endpoint, "http") {
+		ld := strings.TrimPrefix(strings.ToLower(endpoint), "http://")
+		daemon_uri = "ws://" + ld + "/ws"
+
+		client.WS, _, err = websocket.DefaultDialer.Dial(daemon_uri, nil)
+	} else if strings.HasPrefix(endpoint, "wss") {
+		ld := strings.TrimPrefix(strings.ToLower(endpoint), "wss://")
+		daemon_uri = "wss://" + ld + "/ws"
+
+		client.WS, _, err = websocket.DefaultDialer.Dial(daemon_uri, nil)
+	} else if strings.HasPrefix(endpoint, "ws") {
+		ld := strings.TrimPrefix(strings.ToLower(endpoint), "ws://")
+		daemon_uri = "ws://" + ld + "/ws"
+
+		client.WS, _, err = websocket.DefaultDialer.Dial(daemon_uri, nil)
+	} else {
+		daemon_uri = "ws://" + endpoint + "/ws"
+
+		client.WS, _, err = websocket.DefaultDialer.Dial(daemon_uri, nil)
+	}
 
 	// notify user of any state change
 	// if daemon connection breaks or comes live again
 	if err == nil {
 		if !Connected {
-			logger.Printf("[Connect] Connection to RPC server successful - ws://%s/ws", endpoint)
+			logger.Printf("[Connect] Connection to RPC server successful - %s", daemon_uri)
 			Connected = true
 		}
 	} else {
 		logger.Errorf("[Connect] ERROR connecting to endpoint %v", err)
 
 		if Connected {
-			logger.Errorf("[Connect] ERROR - Connection to RPC server Failed - ws://%s/ws", endpoint)
+			logger.Errorf("[Connect] ERROR - Connection to RPC server Failed - %s", daemon_uri)
 		}
 		Connected = false
 		return err
