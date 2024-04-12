@@ -1044,55 +1044,57 @@ func (indexer *Indexer) indexBlock(blid string, topoheight int64) (blockTxns *st
 
 	var bl block.Block
 	var block_bin []byte
+	var addr *rpc.Address
+	writeWait, _ := time.ParseDuration("20ms")
 
 	block_bin, _ = hex.DecodeString(io.Blob)
 	bl.Deserialize(block_bin)
 
-	p := new(crypto.Point)
-	var addr *rpc.Address
-	if err := p.DecodeCompressed(bl.Miner_TX.MinerAddress[:]); err == nil {
-		addr = rpc.NewAddressFromKeys(p)
-	}
-
-	writeWait, _ := time.ParseDuration("20ms")
-	switch indexer.DBType {
-	case "gravdb":
-		for indexer.GravDBBackend.Writing == 1 {
-			if indexer.Closing {
-				return
-			}
-			//logger.Debugf("[Indexer-IndexBlock] GravitonDB is writing... sleeping for %v...", writeWait)
-			time.Sleep(writeWait)
+	if indexer.StoreIntegrators {
+		p := new(crypto.Point)
+		if err := p.DecodeCompressed(bl.Miner_TX.MinerAddress[:]); err == nil {
+			addr = rpc.NewAddressFromKeys(p)
 		}
 
-		indexer.GravDBBackend.Writing = 1
-		_, _, err = indexer.GravDBBackend.StoreIntegrators(addr.String(), false)
-		if err != nil {
-			logger.Errorf("[indexBlock] Error storing integrator details for blid %v", err)
+		switch indexer.DBType {
+		case "gravdb":
+			for indexer.GravDBBackend.Writing == 1 {
+				if indexer.Closing {
+					return
+				}
+				//logger.Debugf("[Indexer-IndexBlock] GravitonDB is writing... sleeping for %v...", writeWait)
+				time.Sleep(writeWait)
+			}
+
+			indexer.GravDBBackend.Writing = 1
+			_, _, err = indexer.GravDBBackend.StoreIntegrators(addr.String(), false)
+			if err != nil {
+				logger.Errorf("[indexBlock] Error storing integrator details for blid %v", err)
+				indexer.GravDBBackend.Writing = 0
+				return blockTxns, err
+			}
 			indexer.GravDBBackend.Writing = 0
-			return blockTxns, err
-		}
-		indexer.GravDBBackend.Writing = 0
-	case "boltdb":
-		for indexer.BBSBackend.Writing == 1 {
-			if indexer.Closing {
-				return
+		case "boltdb":
+			for indexer.BBSBackend.Writing == 1 {
+				if indexer.Closing {
+					return
+				}
+				//logger.Debugf("[Indexer-IndexBlock] BoltDB is writing... sleeping for %v... writer %v...", writeWait, indexer.BBSBackend.Writer)
+				time.Sleep(writeWait)
 			}
-			//logger.Debugf("[Indexer-IndexBlock] BoltDB is writing... sleeping for %v... writer %v...", writeWait, indexer.BBSBackend.Writer)
-			time.Sleep(writeWait)
-		}
 
-		indexer.BBSBackend.Writing = 1
-		//indexer.BBSBackend.Writer = "IndexBlock"
-		_, err = indexer.BBSBackend.StoreIntegrators(addr.String())
-		if err != nil {
-			logger.Errorf("[indexBlock] Error storing integrator details for blid %v", err)
+			indexer.BBSBackend.Writing = 1
+			//indexer.BBSBackend.Writer = "IndexBlock"
+			_, err = indexer.BBSBackend.StoreIntegrators(addr.String())
+			if err != nil {
+				logger.Errorf("[indexBlock] Error storing integrator details for blid %v", err)
+				indexer.BBSBackend.Writing = 0
+				//indexer.BBSBackend.Writer = ""
+				return blockTxns, err
+			}
 			indexer.BBSBackend.Writing = 0
 			//indexer.BBSBackend.Writer = ""
-			return blockTxns, err
 		}
-		indexer.BBSBackend.Writing = 0
-		//indexer.BBSBackend.Writer = ""
 	}
 
 	if indexer.MBLLookup {
