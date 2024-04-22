@@ -3,11 +3,11 @@
 ###2.0.3-alpha.8
 
 * Fastsync force height diff knobs
-* SC stored Values handling of various in-built functions (when alone) from #2
+* SC stored Values handling of various in-built functions (when alone) from [#2](https://github.com/civilware/Gnomon/issues/2)
 * Handling connections for http, https, ws, wss etc. for daemon connectivity
 * Multiple CLI filters usable in succession and added the "| last" filter for showing recent results
 * Interaction address tracking added
-* Custom data directory for gnomondb and derodb (if used) - #26
+* Custom data directory for gnomondb and derodb (if used) - [#26](https://github.com/civilware/Gnomon/pull/26)
 * Bug fixes
 
 ###2.0.3-alpha.1
