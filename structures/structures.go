@@ -117,3 +117,14 @@ type InteractionAddrs_Params struct {
 	Installs   bool
 	Invokes    bool
 }
+
+type (
+	WS_ListSC_Params struct {
+		Address string `json:"address"` // can supply an address for filtering on owner/sc deployer
+		SCID    string `json:"scid"`    // can supply a scid for filtering to a specific scid
+	}
+
+	WS_ListSC_Result struct {
+		ListSC []*SCTXParse `json:"listsc"`
+	}
+)

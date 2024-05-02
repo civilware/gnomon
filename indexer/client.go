@@ -11,6 +11,7 @@ import (
 
 	"github.com/civilware/Gnomon/rwc"
 	"github.com/civilware/Gnomon/structures"
+	"github.com/sirupsen/logrus"
 
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -27,6 +28,8 @@ type Client struct {
 }
 
 func (client *Client) Connect(endpoint string) (err error) {
+	logger = structures.Logger.WithFields(logrus.Fields{})
+
 	var daemon_uri string
 
 	// Used to check if the endpoint has changed.. if so, then close WS to current and update WS

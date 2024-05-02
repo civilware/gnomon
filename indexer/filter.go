@@ -6,9 +6,12 @@ import (
 	"strings"
 
 	"github.com/civilware/Gnomon/structures"
+	"github.com/sirupsen/logrus"
 )
 
 func SplitLineParts(line_parts []string, splitter string) (filt_line_parts [][]string) { //(filt_line_parts []string) {
+	logger = structures.Logger.WithFields(logrus.Fields{})
+
 	// If line_parts is nil, return
 	if len(line_parts) == 0 {
 		return
@@ -89,19 +92,26 @@ func (indexer *Indexer) PipeFilter(line_parts []string, invokedetails []*structu
 					details_filtered = append(details_filtered, invoke)
 				}
 			case "last":
+				var lh int64
+				var err error
+
 				lp := 2
 				details_filtered = append(details_filtered, invokedetails...)
 
-				lh, err := strconv.ParseInt(line_parts[lp], 10, 64)
-				if err != nil {
-					logger.Errorf("[PipeFilter-last] Cannot convert %s to int64. Not filtering off last.", line_parts[2])
+				if len(line_parts) <= lp {
+					logger.Errorf("[PipeFilter-last] Not filtering off last. No numeric value provided")
 				} else {
-					if lh < 0 {
-						lh = 0
-					} else if lh > int64(len(details_filtered)) {
-						lh = int64(len(details_filtered))
+					lh, err = strconv.ParseInt(line_parts[lp], 10, 64)
+					if err != nil {
+						logger.Errorf("[PipeFilter-last] Cannot convert %s to int64. Not filtering off last.", line_parts[2])
+					} else {
+						if lh < 0 {
+							lh = 0
+						} else if lh > int64(len(details_filtered)) {
+							lh = int64(len(details_filtered))
+						}
+						details_filtered = details_filtered[int64(len(details_filtered))-lh:]
 					}
-					details_filtered = details_filtered[int64(len(details_filtered))-lh:]
 				}
 			default:
 				lp := 1
