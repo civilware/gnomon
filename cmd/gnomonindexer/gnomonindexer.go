@@ -599,7 +599,8 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			}
 		case command == "listsc_hardcoded":
 			// Simple print out of hardcoded scid for reference point
-			for _, s := range structures.Hardcoded_SCIDS {
+			listsc_hardcoded, _ := wsserver.ListSCHardcoded(context.Background())
+			for _, s := range listsc_hardcoded.SCHardcoded {
 				logger.Printf("%s", s)
 			}
 		case command == "listsc_code":
@@ -608,45 +609,11 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 				i := 0
 				for ki, vi := range g.Indexers {
 					logger.Printf("- Indexer '%v'", ki)
-					var owner string
-					var sccode string
-					switch vi.DBType {
-					case "gravdb":
-						owner = vi.GravDBBackend.GetOwner(line_parts[1])
-						hVars := vi.GravDBBackend.GetSCIDVariableDetailsAtTopoheight(line_parts[1], vi.ChainHeight)
-						for _, v := range hVars {
-							switch ckey := v.Key.(type) {
-							case string:
-								if ckey == "C" {
-									sccode = v.Value.(string)
-								}
-							default:
-							}
-						}
-					case "boltdb":
-						owner = vi.BBSBackend.GetOwner(line_parts[1])
-						hVars := vi.BBSBackend.GetSCIDVariableDetailsAtTopoheight(line_parts[1], vi.ChainHeight)
-						for _, v := range hVars {
-							switch ckey := v.Key.(type) {
-							case string:
-								if ckey == "C" {
-									sccode = v.Value.(string)
-								}
-							default:
-							}
-						}
-					}
+					sccode, _ := wsserver.ListSCCode(context.Background(), structures.WS_ListSCCode_Params{SCID: line_parts[1]}, vi)
 
-					if sccode == "" {
-						_, sccode, _, err = vi.RPC.GetSCVariables(line_parts[1], vi.ChainHeight, nil, nil, nil, true)
-					}
-					if err != nil {
-						logger.Errorf("%v", err)
-					}
-
-					if sccode != "" {
-						logger.Printf("SCID: %v ; Owner: %v", line_parts[1], owner)
-						logger.Printf("%s", sccode)
+					if sccode.Code != "" {
+						logger.Printf("SCID: %v ; Owner: %v", line_parts[1], sccode.Owner)
+						logger.Printf("%s", sccode.Code)
 						i++
 						break
 					} else {
@@ -662,44 +629,11 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 					i := 0
 					for ki, vi := range g.Indexers {
 						logger.Printf("- Indexer '%v'", ki)
-						var owner string
-						var sccode string
-						switch vi.DBType {
-						case "gravdb":
-							owner = vi.GravDBBackend.GetOwner(line_parts[1])
-							hVars := vi.GravDBBackend.GetSCIDVariableDetailsAtTopoheight(line_parts[1], int64(s))
-							for _, v := range hVars {
-								switch ckey := v.Key.(type) {
-								case string:
-									if ckey == "C" {
-										sccode = v.Value.(string)
-									}
-								default:
-								}
-							}
-						case "boltdb":
-							owner = vi.BBSBackend.GetOwner(line_parts[1])
-							hVars := vi.BBSBackend.GetSCIDVariableDetailsAtTopoheight(line_parts[1], int64(s))
-							for _, v := range hVars {
-								switch ckey := v.Key.(type) {
-								case string:
-									if ckey == "C" {
-										sccode = v.Value.(string)
-									}
-								default:
-								}
-							}
-						}
-						if sccode == "" {
-							_, sccode, _, err = vi.RPC.GetSCVariables(line_parts[1], int64(s), nil, nil, nil, true)
-						}
-						if err != nil {
-							logger.Errorf("%v", err)
-						}
+						sccode, _ := wsserver.ListSCCode(context.Background(), structures.WS_ListSCCode_Params{SCID: line_parts[1], Height: int64(s)}, vi)
 
-						if sccode != "" {
-							logger.Printf("SCID: %v ; Owner: %v", line_parts[1], owner)
-							logger.Printf("%s", sccode)
+						if sccode.Code != "" {
+							logger.Printf("SCID: %v ; Owner: %v", line_parts[1], sccode.Owner)
+							logger.Printf("%s", sccode.Code)
 							i++
 							break
 						} else {

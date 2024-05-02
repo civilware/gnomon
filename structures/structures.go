@@ -118,6 +118,7 @@ type InteractionAddrs_Params struct {
 	Invokes    bool
 }
 
+// WS struct types
 type (
 	WS_ListSC_Params struct {
 		Address string `json:"address"` // can supply an address for filtering on owner/sc deployer
@@ -128,3 +129,21 @@ type (
 		ListSC []*SCTXParse `json:"listsc"`
 	}
 )
+
+type WS_ListSCHardcoded_Result struct {
+	SCHardcoded []string `json:"schardcoded"`
+}
+
+type (
+	WS_ListSCCode_Params struct {
+		SCID   string `json:"scid"`   // supply a scid to return the code of
+		Height int64  `json:"height"` // supply a specific height to check the SCID code at
+	}
+
+	WS_ListSCCode_Result struct {
+		Code  string `json:"code"`
+		Owner string `json:"owner"`
+	}
+)
+
+// End WS struct types
