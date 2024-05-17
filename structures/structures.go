@@ -146,4 +146,21 @@ type (
 	}
 )
 
+type (
+	WS_ListSCCodeMatch_Params struct {
+		Match       string `json:"match"`       // supply a match string to check SC code returns against
+		IncludeCode bool   `json:"includecode"` // supply back the sccode with the results, this is a larger dataset return
+	}
+
+	WS_ListSCCodeMatch_SliceResult struct {
+		SCID  string `json:"scid"`  // returns the SCID which matched the code
+		Code  string `json:"code"`  // returns the code, assuming includecode was true in params, for the matching scid
+		Owner string `json:"owner"` // returns the owner of the matching scid
+	}
+
+	WS_ListSCCodeMatch_Result struct {
+		Results []WS_ListSCCodeMatch_SliceResult `json:"results"` // supply matching results of scid/owner pairs
+	}
+)
+
 // End WS struct types

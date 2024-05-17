@@ -50,6 +50,7 @@ Usage:
 Options:
   -h --help     Show this screen.
   --daemon-rpc-address=<127.0.0.1:40402>    Connect to daemon.
+  --enable-api    Enable api/ws
   --api-address=<127.0.0.1:8082>     Host api.
   --enable-api-ssl     Enable ssl.
   --api-ssl-address=<127.0.0.1:9092>     Host ssl api.
@@ -151,6 +152,11 @@ func main() {
 	Gnomon.DaemonEndpoint = daemon_endpoint
 
 	logger.Printf("[Main] Using daemon RPC endpoint %s", daemon_endpoint)
+
+	var enableapi bool
+	if arguments["--enable-api"] != nil && arguments["--enable-api"].(bool) == true {
+		enableapi = true
+	}
 
 	api_endpoint := "127.0.0.1:8082"
 	if arguments["--api-address"] != nil {
@@ -368,8 +374,10 @@ func main() {
 		ApiThrottle:          api_throttle,
 	}
 	// TODO: Add default search filter index of sorts, rather than passing through Graviton_backend object as a whole
-	apis := api.NewApiServer(apic, Graviton_backend, Bbs_backend, Gnomon.DBType)
-	go apis.Start()
+	if enableapi {
+		apis := api.NewApiServer(apic, Graviton_backend, Bbs_backend, Gnomon.DBType)
+		go apis.Start()
+	}
 
 	// Start default indexer based on search_filter params
 	fsc := &structures.FastSyncConfig{
@@ -384,7 +392,9 @@ func main() {
 	switch Gnomon.RunMode {
 	case "daemon":
 		go defaultIndexer.StartDaemonMode(numParallelBlocks)
-		go wsserver.ListenWS(ws_endpoint, defaultIndexer)
+		if enableapi {
+			go wsserver.ListenWS(ws_endpoint, defaultIndexer)
+		}
 	case "wallet":
 		go defaultIndexer.StartWalletMode("")
 	case "asset":
@@ -655,60 +665,23 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 			if len(line_parts) >= 2 {
 				for ki, vi := range g.Indexers {
 					logger.Printf("- Indexer '%v'", ki)
-					sclist := make(map[string]string)
-					switch vi.DBType {
-					case "gravdb":
-						sclist = vi.GravDBBackend.GetAllOwnersAndSCIDs()
-					case "boltdb":
-						sclist = vi.BBSBackend.GetAllOwnersAndSCIDs()
+					var err error
+					var result structures.WS_ListSCCodeMatch_Result
+					if len(line_parts) == 2 {
+						result, err = wsserver.ListSCCodeMatch(context.Background(), structures.WS_ListSCCodeMatch_Params{Match: line_parts[1], IncludeCode: true}, vi)
+					} else {
+						result, err = wsserver.ListSCCodeMatch(context.Background(), structures.WS_ListSCCodeMatch_Params{Match: strings.Join(line_parts[1:], " "), IncludeCode: true}, vi)
 					}
-					for k, v := range sclist {
-						var sccode string
-						switch vi.DBType {
-						case "gravdb":
-							hVars := vi.GravDBBackend.GetSCIDVariableDetailsAtTopoheight(k, vi.ChainHeight)
-							for _, v := range hVars {
-								switch ckey := v.Key.(type) {
-								case string:
-									if ckey == "C" {
-										sccode = v.Value.(string)
-									}
-								default:
-								}
-							}
-						case "boltdb":
-							hVars := vi.BBSBackend.GetSCIDVariableDetailsAtTopoheight(k, vi.ChainHeight)
-							for _, v := range hVars {
-								switch ckey := v.Key.(type) {
-								case string:
-									if ckey == "C" {
-										sccode = v.Value.(string)
-									}
-								default:
-								}
-							}
-						}
+					if err != nil {
+						logger.Errorf("%v", err)
+					}
 
-						if sccode == "" {
-							_, sccode, _, err = vi.RPC.GetSCVariables(k, vi.ChainHeight, nil, nil, nil, true)
-						}
-						if err != nil {
-							logger.Errorf("%v", err)
-						}
-
-						if sccode != "" {
-							var contains bool
-
-							if len(line_parts) == 2 {
-								contains = strings.Contains(sccode, line_parts[1])
-							} else {
-								contains = strings.Contains(sccode, strings.Join(line_parts[1:], " "))
-							}
-							if contains {
-								logger.Printf("SCID: %v ; Owner: %v", k, v)
-								//logger.Printf("%s", sccode)
-							}
-						}
+					for _, v := range result.Results {
+						logger.Printf("SCID: %v, Owner: %v", v.SCID, v.Owner)
+						logger.Printf("SC Code: %v", v.Code)
+					}
+					if len(result.Results) > 0 {
+						logger.Printf("SCID Matches returned - %v", len(result.Results))
 					}
 				}
 			} else {
