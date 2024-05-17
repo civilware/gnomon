@@ -11,6 +11,26 @@
 
 #### Request
 
+```go
+var pingpong structures.WS_ListSC_Result
+
+params := structures.WS_ListSC_Params{
+    Address: "dero1qytygwq00ppnef59l6r5g96yhcvgpzx0ftc0ctefs5td43vkn0p72qqlqrn8z",
+    SCID:    "805ade9294d01a8c9892c73dc7ddba012eaa0d917348f9b317b706131c82a2d5",
+}
+
+err = Client.RPC.CallResult(context.Background(), method, params, &pingpong)
+
+if err != nil {
+    logger.Errorf("ERR - %v", err)
+    Client.Connect("127.0.0.1:9190")
+}
+
+for _, v := range pingpong.ListSC {
+    logger.Printf("[Return] %v", v.Txid)
+}
+```
+
 #### Response
 
-[Return](../README.md)
+[Methods](../README.md#methods)

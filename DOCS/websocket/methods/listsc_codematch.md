@@ -11,6 +11,29 @@
 
 #### Request
 
+```go
+var pingpong structures.WS_ListSCCodeMatch_Result
+
+params := structures.WS_ListSCCodeMatch_Params{
+    Match:       "Civilware",
+    IncludeCode: false,
+}
+
+err = Client.RPC.CallResult(context.Background(), method, params, &pingpong)
+if err != nil {
+    logger.Errorf("ERR - %v", err)
+    Client.Connect("127.0.0.1:9190")
+}
+
+for _, v := range pingpong.Results {
+    if params.IncludeCode {
+        logger.Printf("SCID: %s, Owner: %s, Code: %s", v.SCID, v.Owner, v.Code)
+    } else {
+        logger.Printf("SCID: %s, Owner: %s", v.SCID, v.Owner)
+    }
+}
+```
+
 #### Response
 
-[Return](../README.md)
+[Methods](../README.md#methods)
