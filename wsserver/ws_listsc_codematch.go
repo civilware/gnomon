@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Lists sc code match
+// Lists scs which their current code matches a given input string 'match'
 // - Checks all stored owner/scid pairs and stored code for the Match string
 // - Returns a slice of scid/owner data regarding matching results
 func ListSCCodeMatch(ctx context.Context, p structures.WS_ListSCCodeMatch_Params, indexer *indexer.Indexer) (result structures.WS_ListSCCodeMatch_Result, err error) {
