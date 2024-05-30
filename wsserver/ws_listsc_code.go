@@ -29,6 +29,7 @@ func ListSCCode(ctx context.Context, p structures.WS_ListSCCode_Params, indexer 
 				case string:
 					if ckey == "C" {
 						sccode = v.Value.(string)
+						break
 					}
 				default:
 				}
@@ -41,6 +42,7 @@ func ListSCCode(ctx context.Context, p structures.WS_ListSCCode_Params, indexer 
 				case string:
 					if ckey == "C" {
 						sccode = v.Value.(string)
+						break
 					}
 				default:
 				}
@@ -72,6 +74,7 @@ func ListSCCode(ctx context.Context, p structures.WS_ListSCCode_Params, indexer 
 				case string:
 					if ckey == "C" {
 						sccode = v.Value.(string)
+						break
 					}
 				default:
 				}
@@ -84,6 +87,7 @@ func ListSCCode(ctx context.Context, p structures.WS_ListSCCode_Params, indexer 
 				case string:
 					if ckey == "C" {
 						sccode = v.Value.(string)
+						break
 					}
 				default:
 				}

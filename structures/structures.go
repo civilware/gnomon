@@ -163,4 +163,16 @@ type (
 	}
 )
 
+type (
+	WS_ListSCVariables_Params struct {
+		SCID   string `json:"scid"`   // supply a scid to return the variables of
+		Height int64  `json:"height"` // supply a specific height to check the SCID variables at
+	}
+
+	WS_ListSCVariables_Result struct {
+		VariableStringKeys map[string]interface{} `json:"stringkeys"`
+		VariableUint64Keys map[uint64]interface{} `json:"uint64keys"`
+	}
+)
+
 // End WS struct types

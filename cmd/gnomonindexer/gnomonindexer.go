@@ -693,76 +693,42 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 				i := 0
 				for ki, vi := range g.Indexers {
 					logger.Printf("- Indexer '%v'", ki)
-					var owner string
-					switch vi.DBType {
-					case "gravdb":
-						owner = vi.GravDBBackend.GetOwner(line_parts[1])
-					case "boltdb":
-						owner = vi.BBSBackend.GetOwner(line_parts[1])
-					}
-					vars, _, _, err := vi.RPC.GetSCVariables(line_parts[1], vi.ChainHeight, nil, nil, nil, false)
-					if err != nil {
-						logger.Errorf("%v", err)
-					}
+					scvars, _ := wsserver.ListSCVariables(context.Background(), structures.WS_ListSCVariables_Params{SCID: line_parts[1]}, vi)
 
-					if len(vars) > 0 {
-						logger.Printf("SCID: %v ; Owner: %v", line_parts[1], owner)
-						for _, vvar := range vars {
-							switch vvar.Key.(type) {
-							case string:
-								if vvar.Key.(string) == "C" {
-									continue
-								}
-
-								logger.Printf("Key: %v ; Value: %v", vvar.Key, vvar.Value)
-							default:
-								logger.Printf("Key: %v ; Value: %v", vvar.Key, vvar.Value)
-							}
-						}
+					for k, v := range scvars.VariableStringKeys {
 						i++
-						break
-					} else {
-						continue
+						logger.Printf("[StringKeys] Key: %s , Value: %v", k, v)
+					}
+
+					for k, v := range scvars.VariableUint64Keys {
+						i++
+						logger.Printf("[Uint64Keys] Key: %v , Value: %v", k, v)
 					}
 				}
 
 				if i == 0 {
-					logger.Printf("SCID '%s' code was unable to be retrieved. Is it installed?", line_parts[1])
+					logger.Printf("SCID '%s' non-C variables were unable to be retrieved. Is it installed or not storing any k/v variables?", line_parts[1])
 				}
 			case 3:
 				if s, err := strconv.Atoi(line_parts[2]); err == nil {
 					i := 0
 					for ki, vi := range g.Indexers {
 						logger.Printf("- Indexer '%v'", ki)
-						var owner string
-						switch vi.DBType {
-						case "gravdb":
-							owner = vi.GravDBBackend.GetOwner(line_parts[1])
-						case "boltdb":
-							owner = vi.BBSBackend.GetOwner(line_parts[1])
-						}
-						vars, _, _, err := vi.RPC.GetSCVariables(line_parts[1], int64(s), nil, nil, nil, false)
-						if err != nil {
-							logger.Errorf("%v", err)
+						scvars, _ := wsserver.ListSCVariables(context.Background(), structures.WS_ListSCVariables_Params{SCID: line_parts[1], Height: int64(s)}, vi)
+
+						for k, v := range scvars.VariableStringKeys {
+							i++
+							logger.Printf("[StringKeys] Key: %s , Value: %v", k, v)
 						}
 
-						if len(vars) > 0 {
-							logger.Printf("SCID: %v ; Owner: %v", line_parts[1], owner)
-							for _, vvar := range vars {
-								if vvar.Key.(string) == "C" {
-									continue
-								}
-								logger.Printf("Key: %v ; Value: %v", vvar.Key, vvar.Value)
-							}
+						for k, v := range scvars.VariableUint64Keys {
 							i++
-							break
-						} else {
-							continue
+							logger.Printf("[Uint64Keys] Key: %v , Value: %v", k, v)
 						}
 					}
 
 					if i == 0 {
-						logger.Printf("SCID '%s' variables were unable to be retrieved at height '%v'. Was it installed?", line_parts[1], int64(s))
+						logger.Printf("SCID '%s' non-C variables were unable to be retrieved at height '%v'. Was it installed or not storing any k/v variables?", line_parts[1], int64(s))
 					}
 				} else {
 					logger.Errorf("Could not parse '%v' into an int for height", line_parts[2])

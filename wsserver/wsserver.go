@@ -257,6 +257,33 @@ func (wss *WSServer) wsHandleClient(ctx context.Context, c *websocket.Conn, l *r
 			logger.Debugf("[wsHandleClient] Server disconnect request")
 			return fmt.Errorf("server disconnect request")
 		}
+	case "listsc_variables":
+
+		var params structures.WS_ListSCVariables_Params
+		pb, err := req.Params.MarshalJSON()
+		if err != nil {
+			logger.Errorf("[wsHandleClient] Unable to parse params")
+		}
+		err = json.Unmarshal(pb, &params)
+		if err != nil {
+			logger.Errorf("[wsHandleClient] Unable to parse params")
+			return err
+		}
+
+		logger.Debugf("[wsHandleClient] Method: %v", req.Method)
+		logger.Debugf("[wsHandleClient] Query: %v", params)
+
+		lh, _ := ListSCVariables(ctx, params, wss.Indexer)
+
+		message := &structures.JSONRpcResp{Id: req.Id, Version: "2.0", Error: nil, Result: lh}
+		//logger.Debugf("[wsHandleClient] %v Writer", req.Method)
+		err = wsjson.Write(ctx, c, message)
+		if err != nil {
+			logger.Debugf("[wsHandleClient] err writing message: err: %v", err)
+
+			logger.Debugf("[wsHandleClient] Server disconnect request")
+			return fmt.Errorf("server disconnect request")
+		}
 	default:
 		logger.Debugf("[wsHandleClient] Server disconnect request - invalid request method (%s)", req.Method)
 		// Sleep rate limit time for response
