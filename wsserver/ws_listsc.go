@@ -117,6 +117,32 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 				break
 			}
 		}
+	} else if p.GetInstalls { // If getinstalls param is passed but above did not flag
+		for ki, vi := range sclist {
+			var invokedetails []*structures.SCTXParse
+			switch indexer.DBType {
+			case "gravdb":
+				invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+			case "boltdb":
+				invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+			}
+			i := 0
+			for _, v := range invokedetails {
+				sc_action := fmt.Sprintf("%v", v.Sc_args.Value("SC_ACTION", "U"))
+				if sc_action == "1" {
+					i++
+					result.ListSC = append(result.ListSC, v)
+				}
+			}
+
+			if i == 0 {
+				logger.Debugf("No sc_action of '1' for %v", ki)
+				result.ListSC = append(result.ListSC, &structures.SCTXParse{Scid: ki, Sender: vi})
+				count++
+			} else {
+				count++
+			}
+		}
 	} else { // If no params are passed, return all
 		for ki, vi := range sclist {
 			result.ListSC = append(result.ListSC, &structures.SCTXParse{Scid: ki, Sender: vi})

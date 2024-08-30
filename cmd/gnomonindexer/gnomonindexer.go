@@ -842,28 +842,33 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 								return scinstalls[i].Height < scinstalls[j].Height
 							})
 
+							// Loop through and filter installations by the height paramter defined
 							l := 0
+							var scinstallsbyheight []*structures.SCTXParse
+							for _, scinst := range scinstalls {
+								if scinst.Height <= int64(sh) {
+									scinstallsbyheight = append(scinstallsbyheight, scinst)
+									l++
+								}
+							}
 
 							// Filter line inputs (if applicable) and return a trimmed list to print out to cli
 							var filteredResults []*structures.SCTXParse
 							if len(filt_line_parts) > 1 {
 								for i := range filt_line_parts {
 									if i == 0 {
-										filteredResults = vi.PipeFilter(filt_line_parts[i], scinstalls)
+										filteredResults = vi.PipeFilter(filt_line_parts[i], scinstallsbyheight)
 									} else {
 										filteredResults = vi.PipeFilter(filt_line_parts[i], filteredResults)
 									}
 
 								}
 							} else {
-								filteredResults = vi.PipeFilter(filt_line_parts[0], scinstalls)
+								filteredResults = vi.PipeFilter(filt_line_parts[0], scinstallsbyheight)
 							}
 
 							for _, invoke := range filteredResults {
-								if invoke.Height <= int64(sh) {
-									logger.Printf("SCID: %v ; Owner: %v ; DeployHeight: %v", invoke.Scid, invoke.Sender, invoke.Height)
-									l++
-								}
+								logger.Printf("SCID: %v ; Owner: %v ; DeployHeight: %v", invoke.Scid, invoke.Sender, invoke.Height)
 							}
 
 							logger.Printf("Total SCs installed: %v", l+len(structures.Hardcoded_SCIDS))

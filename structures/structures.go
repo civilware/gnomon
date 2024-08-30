@@ -121,8 +121,9 @@ type InteractionAddrs_Params struct {
 // WS struct types
 type (
 	WS_ListSC_Params struct {
-		Address string `json:"address"` // can supply an address for filtering on owner/sc deployer
-		SCID    string `json:"scid"`    // can supply a scid for filtering to a specific scid
+		Address     string `json:"address"`     // can supply an address for filtering on owner/sc deployer
+		SCID        string `json:"scid"`        // can supply a scid for filtering to a specific scid
+		GetInstalls bool   `json:"getinstalls"` // takes longer, loops through each of the invokes to find the installation (if it exists) and returns relevant details
 	}
 
 	WS_ListSC_Result struct {
@@ -172,6 +173,16 @@ type (
 	WS_ListSCVariables_Result struct {
 		VariableStringKeys map[string]interface{} `json:"stringkeys"`
 		VariableUint64Keys map[uint64]interface{} `json:"uint64keys"`
+	}
+)
+
+type (
+	WS_ListSCByHeight_Params struct {
+		Height int64 `json:"height"` // supply a specific height to check for all known installations up to
+	}
+
+	WS_ListSCByHeight_Result struct {
+		ListSCByHeight WS_ListSC_Result `json:"listscbyheight"`
 	}
 )
 

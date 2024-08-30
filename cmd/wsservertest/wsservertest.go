@@ -160,6 +160,22 @@ func main() {
 			for k, v := range pingpong.VariableUint64Keys {
 				logger.Printf("[Uint64Keys] Key: %v , Value: %v", k, v)
 			}
+		case "listsc_byheight":
+			var pingpong structures.WS_ListSCByHeight_Result
+
+			params := structures.WS_ListSCByHeight_Params{
+				Height: 20,
+			}
+
+			err = Client.RPC.CallResult(context.Background(), method, params, &pingpong)
+			if err != nil {
+				logger.Errorf("ERR - %v", err)
+				Client.Connect("127.0.0.1:9190")
+			}
+
+			for _, v := range pingpong.ListSCByHeight.ListSC {
+				logger.Printf("[Return] %v", v.Txid)
+			}
 		default:
 		}
 		i++
