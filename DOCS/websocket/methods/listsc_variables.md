@@ -19,7 +19,7 @@ params := structures.WS_ListSCVariables_Params{
     Height: 20,
 }
 
-err = Client.RPC.CallResult(context.Background(), method, params, &pingpong)
+err = Client.RPC.CallResult(context.Background(), "listsc_variables", params, &pingpong)
 if err != nil {
     logger.Errorf("ERR - %v", err)
     Client.Connect("127.0.0.1:9190")

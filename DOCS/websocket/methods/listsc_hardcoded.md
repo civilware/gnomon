@@ -11,7 +11,7 @@ N/A
 ```go
 var pingpong structures.WS_ListSCHardcoded_Result
 
-err = Client.RPC.CallResult(context.Background(), method, nil, &pingpong)
+err = Client.RPC.CallResult(context.Background(), "listsc_hardcoded", nil, &pingpong)
 if err != nil {
     logger.Errorf("ERR - %v", err)
     Client.Connect("127.0.0.1:9190")

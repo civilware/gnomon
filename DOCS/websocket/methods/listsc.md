@@ -19,7 +19,7 @@ params := structures.WS_ListSC_Params{
     SCID:    "805ade9294d01a8c9892c73dc7ddba012eaa0d917348f9b317b706131c82a2d5",
 }
 
-err = Client.RPC.CallResult(context.Background(), method, params, &pingpong)
+err = Client.RPC.CallResult(context.Background(), "listsc", params, &pingpong)
 
 if err != nil {
     logger.Errorf("ERR - %v", err)
