@@ -174,7 +174,7 @@ func main() {
 			}
 
 			for _, v := range pingpong.ListSCByHeight.ListSC {
-				logger.Printf("[Return] %v", v.Txid)
+				logger.Printf("[Return] %v - %v", v.Txid, v.Height)
 			}
 		default:
 		}

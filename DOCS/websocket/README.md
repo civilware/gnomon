@@ -4,6 +4,7 @@ Gnomon Indexer has a built-in API / WS (websocket) component which exposes a ser
 
 ### Methods
 
+* [listsc_byheight](./methods/listsc_byheight.md)
 * [listsc_code](./methods/listsc_code.md)
 * [listsc_codematch](./methods/listsc_codematch.md)
 * [listsc_hardcoded](./methods/listsc_hardcoded.md)
