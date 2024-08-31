@@ -325,8 +325,16 @@ func (bbs *BboltStore) StoreInvokeDetails(scid string, signer string, entrypoint
 
 	bName := scid
 
-	txidLen := len(invokedetails.Txid)
-	key := signer + ":" + invokedetails.Txid[0:3] + invokedetails.Txid[txidLen-3:txidLen] + ":" + strconv.FormatInt(topoheight, 10) + ":" + entrypoint
+	// Check if installsc call to determine the key
+	var key string
+	sc_action := fmt.Sprintf("%v", invokedetails.Sc_args.Value("SC_ACTION", "U"))
+	if sc_action == "1" {
+		logger.Debugf("[StoreInvokeDetails-%s] Storing invokedetails at height '%v' under key '%s'", scid, invokedetails.Height, "installsc")
+		key = "installsc"
+	} else {
+		txidLen := len(invokedetails.Txid)
+		key = signer + ":" + invokedetails.Txid[0:3] + invokedetails.Txid[txidLen-3:txidLen] + ":" + strconv.FormatInt(topoheight, 10) + ":" + entrypoint
+	}
 
 	err = bbs.DB.Update(func(tx *bolt.Tx) (err error) {
 		b, err := tx.CreateBucketIfNotExists([]byte(bName))
@@ -340,6 +348,49 @@ func (bbs *BboltStore) StoreInvokeDetails(scid string, signer string, entrypoint
 	})
 
 	return
+}
+
+// Stores scinvoke calls from a given scid that match installsc
+func (bbs *BboltStore) StoreSCIDInstallSCDetails(scid string, invokedetails *structures.SCTXParse) (changes bool, err error) {
+	confBytes, err := json.Marshal(invokedetails)
+	if err != nil {
+		return changes, fmt.Errorf("[StoreSCIDInstallSCDetails] could not marshal invokedetails info: %v", err)
+	}
+
+	bName := scid
+	key := "installsc"
+
+	err = bbs.DB.Update(func(tx *bolt.Tx) (err error) {
+		b, err := tx.CreateBucketIfNotExists([]byte(bName))
+		if err != nil {
+			return fmt.Errorf("bucket: %s", err)
+		}
+
+		err = b.Put([]byte(key), []byte(confBytes))
+		changes = true
+		return
+	})
+
+	return
+}
+
+// Returns scinvoke call from a given scid that match installsc
+func (bbs *BboltStore) GetSCIDInstallSCDetails(scid string) (invokedetails *structures.SCTXParse) {
+	var v []byte
+	bName := scid
+
+	bbs.DB.View(func(tx *bolt.Tx) (err error) {
+		b := tx.Bucket([]byte(bName))
+		if b != nil {
+			key := "installsc"
+			v = b.Get([]byte(key))
+			_ = json.Unmarshal(v, &invokedetails)
+		}
+
+		return
+	})
+
+	return invokedetails
 }
 
 // Returns all scinvoke calls from a given scid

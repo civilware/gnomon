@@ -602,8 +602,16 @@ func (g *GravitonStore) StoreInvokeDetails(scid string, signer string, entrypoin
 		}
 	}
 
-	txidLen := len(invokedetails.Txid)
-	key := signer + ":" + invokedetails.Txid[0:3] + invokedetails.Txid[txidLen-3:txidLen] + ":" + strconv.FormatInt(topoheight, 10) + ":" + entrypoint
+	// Check if installsc call to determine the key
+	var key string
+	sc_action := fmt.Sprintf("%v", invokedetails.Sc_args.Value("SC_ACTION", "U"))
+	if sc_action == "1" {
+		logger.Debugf("[StoreInvokeDetails-%s] Storing invokedetails at height '%v' under key '%s'", scid, invokedetails.Height, "installsc")
+		key = "installsc"
+	} else {
+		txidLen := len(invokedetails.Txid)
+		key = signer + ":" + invokedetails.Txid[0:3] + invokedetails.Txid[txidLen-3:txidLen] + ":" + strconv.FormatInt(topoheight, 10) + ":" + entrypoint
+	}
 
 	tree.Put([]byte(key), confBytes) // insert a value
 	changes = true
@@ -615,6 +623,104 @@ func (g *GravitonStore) StoreInvokeDetails(scid string, signer string, entrypoin
 		}
 	}
 	return tree, changes, nil
+}
+
+// Stores the owner (who deployed it) of a given scid
+func (g *GravitonStore) StoreSCIDInstallSCDetails(scid string, invokedetails *structures.SCTXParse, nocommit bool) (tree *graviton.Tree, changes bool, err error) {
+	confBytes, err := json.Marshal(invokedetails)
+	if err != nil {
+		return &graviton.Tree{}, changes, fmt.Errorf("[StoreSCIDInstallSCDetails] could not marshal invokedetails info: %v", err)
+	}
+
+	store := g.DB
+	ss, err := store.LoadSnapshot(0) // load most recent snapshot
+	if err != nil {
+		return
+	}
+
+	// Swap DB at g.DBMaxSnapshot+ commits. Check for g.migrating, if so sleep for g.DBMigrateWait ms
+	for g.migrating == 1 {
+		logger.Debugf("[StoreSCIDInstallSCDetails] G is migrating... sleeping for %v...", g.DBMigrateWait)
+		time.Sleep(g.DBMigrateWait)
+		store = g.DB
+		ss, err = store.LoadSnapshot(0) // load most recent snapshot
+		if err != nil {
+			return
+		}
+	}
+
+	tree, _ = ss.GetTree("owner")
+	key := "installsc"
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-StoreSCIDInstallSCDetails] ERROR: Tree is nil for 'owner'. Attempting to rollback 1 snapshot")
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return tree, changes, preverr
+		}
+		tree, terr = prevss.GetTree("owner")
+		if tree == nil {
+			logger.Errorf("[Graviton] ERROR: %v", terr)
+			return tree, changes, terr
+		}
+	}
+	tree.Put([]byte(key), []byte(confBytes)) // insert a value
+	changes = true
+	if !nocommit {
+		_, cerr := graviton.Commit(tree)
+		if cerr != nil {
+			logger.Errorf("[Graviton] ERROR: %v", cerr)
+			return tree, changes, cerr
+		}
+	}
+	return tree, changes, nil
+}
+
+// Returns the owner (who deployed it) of a given scid
+func (g *GravitonStore) GetSCIDInstallSCDetails(scid string) (invokedetails *structures.SCTXParse) {
+	store := g.DB
+	ss, err := store.LoadSnapshot(0) // load most recent snapshot
+	if err != nil {
+		return nil
+	}
+
+	// Swap DB at g.DBMaxSnapshot+ commits. Check for g.migrating, if so sleep for g.DBMigrateWait ms
+	for g.migrating == 1 {
+		logger.Debugf("[GetSCIDInstallSCDetails] G is migrating... sleeping for %v...", g.DBMigrateWait)
+		time.Sleep(g.DBMigrateWait)
+		store = g.DB
+		ss, err = store.LoadSnapshot(0) // load most recent snapshot
+		if err != nil {
+			return nil
+		}
+	}
+
+	tree, _ := ss.GetTree("owner") // use or create tree named by poolhost in config
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-GetSCIDInstallSCDetails] ERROR: Tree is nil for 'owner'. Attempting to rollback 1 snapshot")
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return nil
+		}
+		tree, terr = prevss.GetTree("stats")
+		if tree == nil {
+			logger.Errorf("[Graviton] ERROR: %v", terr)
+			return nil
+		}
+	}
+	key := scid
+
+	v, _ := tree.Get([]byte(key))
+
+	if v != nil {
+		_ = json.Unmarshal(v, &invokedetails)
+		return
+	}
+
+	return nil
 }
 
 // Returns all scinvoke calls from a given scid

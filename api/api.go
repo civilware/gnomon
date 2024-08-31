@@ -170,11 +170,24 @@ func (apiServer *ApiServer) collectStats() {
 		var invokedetails []*structures.SCTXParse
 		switch apiServer.DBType {
 		case "gravdb":
-			invokedetails = apiServer.GravDBBackend.GetAllSCIDInvokeDetails(k)
+			// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+			invokedetail := apiServer.GravDBBackend.GetSCIDInstallSCDetails(k)
+			if invokedetail != nil {
+				invokedetails = append(invokedetails, invokedetail)
+			} else {
+				invokedetails = apiServer.GravDBBackend.GetAllSCIDInvokeDetails(k)
+			}
 		case "boltdb":
-			invokedetails = apiServer.BBSBackend.GetAllSCIDInvokeDetails(k)
+			// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+			invokedetail := apiServer.BBSBackend.GetSCIDInstallSCDetails(k)
+			if invokedetail != nil {
+				invokedetails = append(invokedetails, invokedetail)
+			} else {
+				invokedetails = apiServer.BBSBackend.GetAllSCIDInvokeDetails(k)
+			}
 		}
 		i := 0
+		// Double check for legacy - could be phased out by a version check
 		for _, v := range invokedetails {
 			sc_action := fmt.Sprintf("%v", v.Sc_args.Value("SC_ACTION", "U"))
 			if sc_action == "1" {

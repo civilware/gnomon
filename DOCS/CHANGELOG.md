@@ -1,5 +1,11 @@
 ## CHANGELOG
 
+###2.1.0-alpha.1
+
+* Added wsserver components and various supporting/exportable [functions](./websocket/README.md)
+* Updated installsc calls to store under a key of 'installsc' for faster parsing on get operations
+  * Remediation for existing DBs will come in another upcoming alpha.x release
+
 ###2.0.3-alpha.8
 
 * Fastsync force height diff knobs

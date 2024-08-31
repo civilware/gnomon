@@ -31,11 +31,24 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 				var invokedetails []*structures.SCTXParse
 				switch indexer.DBType {
 				case "gravdb":
-					invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+					invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
+					if invokedetail != nil {
+						invokedetails = append(invokedetails, invokedetail)
+					} else {
+						invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+					}
 				case "boltdb":
-					invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+					invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
+					if invokedetail != nil {
+						invokedetails = append(invokedetails, invokedetail)
+					} else {
+						invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+					}
 				}
 				i := 0
+				// Double check for legacy - could be phased out by a version check
 				for _, v := range invokedetails {
 					sc_action := fmt.Sprintf("%v", v.Sc_args.Value("SC_ACTION", "U"))
 					if sc_action == "1" {
@@ -59,11 +72,24 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 				var invokedetails []*structures.SCTXParse
 				switch indexer.DBType {
 				case "gravdb":
-					invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+					invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
+					if invokedetail != nil {
+						invokedetails = append(invokedetails, invokedetail)
+					} else {
+						invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+					}
 				case "boltdb":
-					invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+					invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
+					if invokedetail != nil {
+						invokedetails = append(invokedetails, invokedetail)
+					} else {
+						invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+					}
 				}
 				i := 0
+				// Double check for legacy - could be phased out by a version check
 				for _, v := range invokedetails {
 					sc_action := fmt.Sprintf("%v", v.Sc_args.Value("SC_ACTION", "U"))
 					if sc_action == "1" {
@@ -90,11 +116,24 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 				var invokedetails []*structures.SCTXParse
 				switch indexer.DBType {
 				case "gravdb":
-					invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+					invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
+					if invokedetail != nil {
+						invokedetails = append(invokedetails, invokedetail)
+					} else {
+						invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+					}
 				case "boltdb":
-					invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+					invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
+					if invokedetail != nil {
+						invokedetails = append(invokedetails, invokedetail)
+					} else {
+						invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+					}
 				}
 				i := 0
+				// Double check for legacy - could be phased out by a version check
 				for _, v := range invokedetails {
 					if v.Sender == p.Address {
 						sc_action := fmt.Sprintf("%v", v.Sc_args.Value("SC_ACTION", "U"))
@@ -122,11 +161,24 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 			var invokedetails []*structures.SCTXParse
 			switch indexer.DBType {
 			case "gravdb":
-				invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+				// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+				invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
+				if invokedetail != nil {
+					invokedetails = append(invokedetails, invokedetail)
+				} else {
+					invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
+				}
 			case "boltdb":
-				invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+				// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
+				invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
+				if invokedetail != nil {
+					invokedetails = append(invokedetails, invokedetail)
+				} else {
+					invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
+				}
 			}
 			i := 0
+			// Double check for legacy - could be phased out by a version check
 			for _, v := range invokedetails {
 				sc_action := fmt.Sprintf("%v", v.Sc_args.Value("SC_ACTION", "U"))
 				if sc_action == "1" {
