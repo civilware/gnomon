@@ -17,6 +17,7 @@ import (
 	"github.com/civilware/Gnomon/mbllookup"
 	"github.com/civilware/Gnomon/storage"
 	"github.com/civilware/Gnomon/structures"
+	"github.com/schollz/progressbar"
 
 	"github.com/deroproject/derohe/block"
 	"github.com/deroproject/derohe/cryptography/bn256"
@@ -234,12 +235,22 @@ func (indexer *Indexer) StartDaemonMode(blockParallelNum int) {
 				}
 				indexer.GravDBBackend.Writing = 1
 				var ctrees []*graviton.Tree
+				// Hardcoded SCIDs are stored with the chain, assume no owner since none is returned
 				sotree, sochanges, err := indexer.GravDBBackend.StoreOwner(vi, "", true)
 				if err != nil {
 					logger.Errorf("[StartDaemonMode-hardcodedscids] Error storing owner: %v", err)
 				} else {
 					if sochanges {
 						ctrees = append(ctrees, sotree)
+					}
+				}
+				// Hardcoded SCIDs are stored with the chain, assume install height of 1
+				shtree, shchanges, err := indexer.GravDBBackend.StoreInstallHeight(vi, 1, true)
+				if err != nil {
+					logger.Errorf("[StartDaemonMode-hardcodedscids] Error storing install height: %v", err)
+				} else {
+					if shchanges {
+						ctrees = append(ctrees, shtree)
 					}
 				}
 				// If scVarsStore length is greater than 0, we can assume there were diffs. Otherwise the varstores are equal and move on.
@@ -280,7 +291,13 @@ func (indexer *Indexer) StartDaemonMode(blockParallelNum int) {
 				}
 				indexer.BBSBackend.Writing = 1
 				//indexer.BBSBackend.Writer = "StartDaemonMode"
+				// Hardcoded SCIDs are stored with the chain, assume no owner since none is returned
 				_, err := indexer.BBSBackend.StoreOwner(vi, "")
+				if err != nil {
+					logger.Errorf("[StartDaemonMode-hardcodedscids] Error storing owner: %v", err)
+				}
+				// Hardcoded SCIDs are stored with the chain, assume install height of 1
+				_, err = indexer.BBSBackend.StoreInstallHeight(vi, 1)
 				if err != nil {
 					logger.Errorf("[StartDaemonMode-hardcodedscids] Error storing owner: %v", err)
 				}
@@ -773,8 +790,10 @@ func (indexer *Indexer) AddSCIDToIndex(scidstoadd map[string]*structures.FastSyn
 	// We know owner is a tree that'll be written to, no need to loop through the scexists func every time when we *know* this one exists and isn't unique by scid etc.
 	treenames = append(treenames, "owner")
 
+	bar := progressbar.New(len(scidstoadd))
 	for scid, fsi := range scidstoadd {
 		go func(scid string, fsi *structures.FastSyncImport) {
+			defer bar.Add(1)
 			// Check if already validated
 			if (scidExist(indexer.ValidatedSCs, scid) || indexer.Closing) && !varstoreonly {
 				//logger.Debugf("[AddSCIDToIndex] SCID '%v' already in validated list.", scid)
@@ -881,6 +900,22 @@ func (indexer *Indexer) AddSCIDToIndex(scidstoadd map[string]*structures.FastSyn
 						ctrees = append(ctrees, sotree)
 					}
 				}
+
+				var shchanges bool
+				var shtree *graviton.Tree
+				if v.fsi != nil {
+					shtree, shchanges, err = tempdb.StoreInstallHeight(v.scid, int64(v.fsi.Height), true)
+				} else {
+					shtree, shchanges, err = tempdb.StoreInstallHeight(v.scid, 1, true)
+				}
+				if err != nil {
+					logger.Errorf("[AddSCIDToIndex] ERR - storing install height: %v", err)
+				} else {
+					if shchanges {
+						ctrees = append(ctrees, shtree)
+					}
+				}
+
 				svdtree, svdchanges, err := tempdb.StoreSCIDVariableDetails(v.scid, v.scVars, indexer.ChainHeight, true)
 				if err != nil {
 					logger.Errorf("[AddSCIDToIndex] ERR - storing scid variable details: %v", err)
@@ -955,6 +990,22 @@ func (indexer *Indexer) AddSCIDToIndex(scidstoadd map[string]*structures.FastSyn
 					ctrees = append(ctrees, sotree)
 				}
 			}
+
+			var shchanges bool
+			var shtree *graviton.Tree
+			if v.fsi != nil {
+				shtree, shchanges, err = tempdb.StoreInstallHeight(v.scid, int64(v.fsi.Height), true)
+			} else {
+				shtree, shchanges, err = tempdb.StoreInstallHeight(v.scid, 1, true)
+			}
+			if err != nil {
+				logger.Errorf("[AddSCIDToIndex] ERR - storing install height: %v", err)
+			} else {
+				if shchanges {
+					ctrees = append(ctrees, shtree)
+				}
+			}
+
 			if len(ctrees) > 0 {
 				_, err := tempdb.CommitTrees(ctrees)
 				if err != nil {
@@ -1608,6 +1659,15 @@ func (indexer *Indexer) indexInvokes(bl_sctxs []structures.SCTXParse, bl_txns *s
 								}
 							}
 
+							shtree, shchanges, err := indexer.GravDBBackend.StoreInstallHeight(bl_sctxs[i].Scid, bl_sctxs[i].Height, true)
+							if err != nil {
+								logger.Errorf("[indexInvokes-installsc] Error storing install height: %v", err)
+							} else {
+								if shchanges {
+									ctrees = append(ctrees, shtree)
+								}
+							}
+
 							sidtree, sidchanges, err := indexer.GravDBBackend.StoreInvokeDetails(bl_sctxs[i].Scid, bl_sctxs[i].Sender, bl_sctxs[i].Entrypoint, bl_txns.Topoheight, &bl_sctxs[i], true)
 							if err != nil {
 								logger.Errorf("[indexInvokes-installsc] Err storing invoke details. Err: %v", err)
@@ -1658,6 +1718,11 @@ func (indexer *Indexer) indexInvokes(bl_sctxs []structures.SCTXParse, bl_txns *s
 							_, err := indexer.BBSBackend.StoreOwner(bl_sctxs[i].Scid, bl_sctxs[i].Sender)
 							if err != nil {
 								logger.Errorf("[indexInvokes-installsc] Error storing owner: %v", err)
+							}
+
+							_, err = indexer.BBSBackend.StoreInstallHeight(bl_sctxs[i].Scid, bl_sctxs[i].Height)
+							if err != nil {
+								logger.Errorf("[indexInvokes-installsc] Error storing install height: %v", err)
 							}
 
 							_, err = indexer.BBSBackend.StoreInvokeDetails(bl_sctxs[i].Scid, bl_sctxs[i].Sender, bl_sctxs[i].Entrypoint, bl_txns.Topoheight, &bl_sctxs[i])
@@ -1741,10 +1806,33 @@ func (indexer *Indexer) indexInvokes(bl_sctxs []structures.SCTXParse, bl_txns *s
 								//logger.Debugf("[Indexer-NewIndexer] GravitonDB is writing... sleeping for %v...", writeWait)
 								time.Sleep(writeWait)
 							}
+							var ctrees []*graviton.Tree
 							indexer.GravDBBackend.Writing = 1
-							_, _, err = indexer.GravDBBackend.StoreOwner(bl_sctxs[i].Scid, "", false)
+							sotree, sochanges, err := indexer.GravDBBackend.StoreOwner(bl_sctxs[i].Scid, "", true)
 							if err != nil {
 								logger.Errorf("[indexInvokes] Error storing owner: %v", err)
+							} else {
+								if sochanges {
+									ctrees = append(ctrees, sotree)
+								}
+							}
+
+							shtree, shchanges, err := indexer.GravDBBackend.StoreInstallHeight(bl_sctxs[i].Scid, bl_sctxs[i].Height, true)
+							if err != nil {
+								logger.Errorf("[indexInvokes] Error storing install height: %v", err)
+							} else {
+								if shchanges {
+									ctrees = append(ctrees, shtree)
+								}
+							}
+
+							if len(ctrees) > 0 {
+								_, err := indexer.GravDBBackend.CommitTrees(ctrees)
+								if err != nil {
+									logger.Errorf("[indexInvokes-installsc] ERR - committing trees: %v", err)
+								} else {
+									//logger.Debugf("[indexInvokes-installsc] DEBUG - cv [%v]", cv)
+								}
 							}
 							indexer.GravDBBackend.Writing = 0
 						case "boltdb":
@@ -1761,6 +1849,11 @@ func (indexer *Indexer) indexInvokes(bl_sctxs []structures.SCTXParse, bl_txns *s
 							_, err = indexer.BBSBackend.StoreOwner(bl_sctxs[i].Scid, "")
 							if err != nil {
 								logger.Errorf("[indexInvokes] Error storing owner: %v", err)
+							}
+
+							_, err = indexer.BBSBackend.StoreInstallHeight(bl_sctxs[i].Scid, bl_sctxs[i].Height)
+							if err != nil {
+								logger.Errorf("[indexInvokes] Error storing install height: %v", err)
 							}
 
 							indexer.BBSBackend.Writing = 0

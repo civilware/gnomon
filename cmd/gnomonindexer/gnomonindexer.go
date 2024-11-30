@@ -997,7 +997,7 @@ func (g *GnomonServer) readline_loop(l *readline.Instance) (err error) {
 							}
 
 							for _, invoke := range filteredResults {
-								logger.Printf("Sender: %v ; topoheight : %v ; args: %v ; burnValue: %v", invoke.Sender, invoke.Height, invoke.Sc_args, invoke.Payloads[0].BurnValue)
+								logger.Printf("Sender: %v ; topoheight : %v ; args: %v ; burnValue: %v ; txid: %v", invoke.Sender, invoke.Height, invoke.Sc_args, invoke.Payloads[0].BurnValue, invoke.Txid)
 							}
 
 							count++

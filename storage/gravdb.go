@@ -343,7 +343,7 @@ func (g *GravitonStore) GetOwner(scid string) string {
 		if preverr != nil {
 			return ""
 		}
-		tree, terr = prevss.GetTree("stats")
+		tree, terr = prevss.GetTree("owner")
 		if tree == nil {
 			logger.Errorf("[Graviton] ERROR: %v", terr)
 			return ""
@@ -391,6 +391,142 @@ func (g *GravitonStore) GetAllOwnersAndSCIDs() (results map[string]string) {
 	// Duplicate the LATEST (snapshot 0) to the new DB, this starts the DB over again, but still retaining X number of old DBs for version in future use cases. Here we get the vals before swapping to new db in mem
 	for k, v, err := c.First(); err == nil; k, v, err = c.Next() {
 		results[string(k)] = string(v)
+	}
+
+	return
+}
+
+// Stores the install height of a given scid
+func (g *GravitonStore) StoreInstallHeight(scid string, height int64, nocommit bool) (tree *graviton.Tree, changes bool, err error) {
+	store := g.DB
+	ss, err := store.LoadSnapshot(0) // load most recent snapshot
+	if err != nil {
+		return
+	}
+
+	// Swap DB at g.DBMaxSnapshot+ commits. Check for g.migrating, if so sleep for g.DBMigrateWait ms
+	for g.migrating == 1 {
+		logger.Debugf("[StoreInstallHeight] G is migrating... sleeping for %v...", g.DBMigrateWait)
+		time.Sleep(g.DBMigrateWait)
+		store = g.DB
+		ss, err = store.LoadSnapshot(0) // load most recent snapshot
+		if err != nil {
+			return
+		}
+	}
+
+	tree, _ = ss.GetTree("sciheight")
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-StoreInstallHeight] ERROR: Tree is nil for 'owner'. Attempting to rollback 1 snapshot")
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return tree, changes, preverr
+		}
+		tree, terr = prevss.GetTree("sciheight")
+		if tree == nil {
+			logger.Errorf("[Graviton] ERROR: %v", terr)
+			return tree, changes, terr
+		}
+	}
+
+	iHeight := strconv.FormatInt(height, 10)
+
+	tree.Put([]byte(scid), []byte(iHeight)) // insert a value
+	changes = true
+	if !nocommit {
+		_, cerr := graviton.Commit(tree)
+		if cerr != nil {
+			logger.Errorf("[Graviton] ERROR: %v", cerr)
+			return tree, changes, cerr
+		}
+	}
+	return tree, changes, nil
+}
+
+// Returns the install height of a given scid
+func (g *GravitonStore) GetInstallHeight(scid string) (iHeight int64) {
+	store := g.DB
+	ss, err := store.LoadSnapshot(0) // load most recent snapshot
+	if err != nil {
+		return
+	}
+
+	// Swap DB at g.DBMaxSnapshot+ commits. Check for g.migrating, if so sleep for g.DBMigrateWait ms
+	for g.migrating == 1 {
+		logger.Debugf("[GetInstallHeight] G is migrating... sleeping for %v...", g.DBMigrateWait)
+		time.Sleep(g.DBMigrateWait)
+		store = g.DB
+		ss, err = store.LoadSnapshot(0) // load most recent snapshot
+		if err != nil {
+			return
+		}
+	}
+
+	tree, _ := ss.GetTree("sciheight") // use or create tree named by poolhost in config
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-GetInstallHeight] ERROR: Tree is nil for 'owner'. Attempting to rollback 1 snapshot")
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return
+		}
+		tree, terr = prevss.GetTree("sciheight")
+		if tree == nil {
+			logger.Errorf("[Graviton] ERROR: %v", terr)
+			return
+		}
+	}
+	key := scid
+
+	v, _ := tree.Get([]byte(key))
+
+	if v != nil {
+		iHeight, err = strconv.ParseInt(string(v), 10, 64)
+		if err != nil {
+			logger.Errorf("ERR - Error parsing stored int for iHeight: %v", err)
+			return
+		}
+		return
+	}
+
+	return
+}
+
+// Returns all of the deployed SCIDs with their corresponding install heights
+func (g *GravitonStore) GetAllSCIDsAndInstallHeights() (results map[string]int64) {
+	results = make(map[string]int64)
+
+	store := g.DB
+	ss, err := store.LoadSnapshot(0)
+	if err != nil {
+		return
+	}
+	tree, _ := ss.GetTree("sciheight")
+	// Catch/handle a nil tree. TODO: This should gracefully cause shutdown, if we cannot get the previous snapshot data. Also need to handle losing that snapshot, how do we handle.
+	if tree == nil {
+		var terr error
+		logger.Errorf("[Graviton-GetAllSCIDsAndInstallHeights] ERROR: Tree is nil for 'owner'. Attempting to rollback 1 snapshot")
+		prevss, preverr := store.LoadSnapshot(ss.GetVersion() - 1)
+		if preverr != nil {
+			return
+		}
+		tree, terr = prevss.GetTree("sciheight")
+		if tree == nil {
+			logger.Errorf("[Graviton] ERROR: %v", terr)
+			return
+		}
+	}
+
+	c := tree.Cursor()
+	// Duplicate the LATEST (snapshot 0) to the new DB, this starts the DB over again, but still retaining X number of old DBs for version in future use cases. Here we get the vals before swapping to new db in mem
+	for k, v, err := c.First(); err == nil; k, v, err = c.Next() {
+		results[string(k)], err = strconv.ParseInt(string(v), 10, 64)
+		if err != nil {
+			logger.Errorf("[Graviton-GetAllSCIDsAndInstallHeights] ERR - Error parsing stored int for install height: %v", err)
+		}
 	}
 
 	return

@@ -10,7 +10,7 @@ var Logger logrus.Logger
 
 // Gnomon Index SCID
 const MAINNET_GNOMON_SCID = "a05395bb0cf77adc850928b0db00eb5ca7a9ccbafd9a38d021c8d299ad5ce1a4"
-const TESTNET_GNOMON_SCID = "c9d23d2fc3aaa8e54e238a2218c0e5176a6e48780920fd8474fac5b0576110a2"
+const TESTNET_GNOMON_SCID = "df3a698af94afb46e7f6de40bbb628df2e10f29f79900928524d97f30a1928a2"
 
 // Max API data return for limiting data / load. This is unused if --remove-api-throttle is defined or ApiThrottle is false for structures.ApiConfig
 const MAX_API_VAR_RETURN = 1024

@@ -34,6 +34,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 					invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
 					if invokedetail != nil {
+						logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 						invokedetails = append(invokedetails, invokedetail)
 					} else {
 						invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
@@ -42,6 +43,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 					invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
 					if invokedetail != nil {
+						logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 						invokedetails = append(invokedetails, invokedetail)
 					} else {
 						invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
@@ -75,6 +77,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 					invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
 					if invokedetail != nil {
+						logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 						invokedetails = append(invokedetails, invokedetail)
 					} else {
 						invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
@@ -83,6 +86,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 					invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
 					if invokedetail != nil {
+						logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 						invokedetails = append(invokedetails, invokedetail)
 					} else {
 						invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
@@ -119,6 +123,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 					invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
 					if invokedetail != nil {
+						logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 						invokedetails = append(invokedetails, invokedetail)
 					} else {
 						invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
@@ -127,6 +132,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 					// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 					invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
 					if invokedetail != nil {
+						logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 						invokedetails = append(invokedetails, invokedetail)
 					} else {
 						invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
@@ -164,6 +170,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 				// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 				invokedetail := indexer.GravDBBackend.GetSCIDInstallSCDetails(ki)
 				if invokedetail != nil {
+					logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 					invokedetails = append(invokedetails, invokedetail)
 				} else {
 					invokedetails = indexer.GravDBBackend.GetAllSCIDInvokeDetails(ki)
@@ -172,6 +179,7 @@ func ListSC(ctx context.Context, p structures.WS_ListSC_Params, indexer *indexer
 				// Check to see if installsc details are present - implemented in gnomon v2.1.0-alpha.1
 				invokedetail := indexer.BBSBackend.GetSCIDInstallSCDetails(ki)
 				if invokedetail != nil {
+					logger.Debugf("[ListSC-%s] Successfully retrieved installsc details directly", ki)
 					invokedetails = append(invokedetails, invokedetail)
 				} else {
 					invokedetails = indexer.BBSBackend.GetAllSCIDInvokeDetails(ki)
