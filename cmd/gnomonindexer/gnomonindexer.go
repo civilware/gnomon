@@ -1685,7 +1685,7 @@ func usage(w io.Writer) {
 	io.WriteString(w, "\t\033[1mlistsc_code\033[0m\t\tLists SCID code, listsc_code <scid>\n")
 	io.WriteString(w, "\t\033[1mlistsc_codematch\033[0m\t\tLists SCIDs that match a given search string, listsc_codematch <Test Search String>\n")
 	io.WriteString(w, "\t\033[1mlistsc_variables\033[0m\t\tLists SCID variables at latest height unless optionally defining a height, listsc_variables <scid> <height>\n")
-	io.WriteString(w, "\t\033[1mlistsc_byheight\033[0m\tList all indexed scids that match original search filter including height deployed and optionally filter by maxheight, listsc_byheight || listsc_byheight <maxheight> || ... | grep <stringmatch>\n")
+	io.WriteString(w, "\t\033[1mlistsc_byheight\033[0m\tList all indexed scids that match original search filter including height deployed and optionally filter by maxheight or a combination of minheight and maxheight, listsc_byheight || listsc_byheight <maxheight> || listsc_byheight <minheight> <maxheight>\n")
 	io.WriteString(w, "\t\033[1mlistsc_balances\033[0m\tLists balances of SCIDs that are greater than 0 or of a specific scid if specified, listsc_balances || listsc_balances <scid>\n")
 	io.WriteString(w, "\t\033[1mlistscinvoke_byscid\033[0m\tLists a scid/owner pair of a defined scid and any invokes. Optionally limited to a specified minimum height, listscinvoke_byscid <scid> || listscinvoke_byscid <scid> <minheight> || ... | grep <stringmatch>\n")
 	io.WriteString(w, "\t\033[1mlistscinvoke_byentrypoint\033[0m\tLists sc invokes by entrypoint, listscinvoke_byentrypoint <scid> <entrypoint> || ... | grep <stringmatch>\n")
