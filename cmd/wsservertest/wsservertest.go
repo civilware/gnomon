@@ -164,7 +164,10 @@ func main() {
 			var pingpong structures.WS_ListSCByHeight_Result
 
 			params := structures.WS_ListSCByHeight_Params{
-				Height: 20,
+				//HeightMax: 20,
+				HeightMax: 4650542,
+				HeightMin: 4650522,
+				//SortDesc:  true,
 			}
 
 			err = Client.RPC.CallResult(context.Background(), method, params, &pingpong)
@@ -173,8 +176,8 @@ func main() {
 				Client.Connect("127.0.0.1:9190")
 			}
 
-			for _, v := range pingpong.ListSCByHeight.ListSC {
-				logger.Printf("[Return] %v - %v", v.Txid, v.Height)
+			for _, v := range pingpong.ListSCByHeight {
+				logger.Printf("[Return] %v - %v - %v", v.SCID, v.Height, v.Owner)
 			}
 		default:
 		}

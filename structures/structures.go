@@ -178,11 +178,13 @@ type (
 
 type (
 	WS_ListSCByHeight_Params struct {
-		Height int64 `json:"height"` // supply a specific height to check for all known installations up to
+		HeightMax int64 `json:"heightmax"` // supply a specific height to check for all known installations up to
+		HeightMin int64 `json:"heightmin"` // supply a specific height to check for all known installations since specified height
+		SortDesc  bool  `json:"sortdesc"`  // if set to true, height list return will be sorted in descending order (e.g. index 0 is the lowest/oldest height)
 	}
 
 	WS_ListSCByHeight_Result struct {
-		ListSCByHeight WS_ListSC_Result `json:"listscbyheight"`
+		ListSCByHeight []GnomonSCIDQuery `json:"listscbyheight"`
 	}
 )
 
